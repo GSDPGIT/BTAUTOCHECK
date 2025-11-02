@@ -98,12 +98,11 @@ MALICIOUS_PATTERNS = {
         r'apikey.*http',
     ],
     
-    # 🌍 可疑域名/IP
+    # 🌍 可疑域名/IP（只检测实际的HTTP请求）
     'suspicious_domain': [
-        r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',  # IP地址
-        r'http://\d+\.\d+\.\d+\.\d+',  # HTTP IP访问
-        r'\.ru[/"]',  # 俄罗斯域名
-        r'\.cn/[a-zA-Z0-9]{8,}',  # 短域名疑似
+        r'(?:curl|wget|requests\.get|requests\.post|http_request).*http://\d+\.\d+\.\d+\.\d+',  # HTTP请求到IP地址
+        r'(?:curl|wget).*\.ru/',  # 下载俄罗斯域名文件
+        r'file_get_contents\s*\(\s*["\']http://\d+\.\d+\.\d+\.\d+',  # PHP直接访问IP
     ],
     
     # 📤 文件下载/上传
@@ -136,11 +135,10 @@ MALICIOUS_PATTERNS = {
     
     # 💀 危险函数
     'dangerous_functions': [
-        r'unserialize\s*\(\s*\$',
-        r'extract\s*\(\s*\$',
-        r'parse_str.*\$',
+        r'unserialize\s*\(\s*\$_(?:GET|POST|REQUEST|COOKIE)',  # 只检测来自用户输入的反序列化
+        r'extract\s*\(\s*\$_(?:GET|POST|REQUEST)',  # 只检测来自用户输入的变量覆盖
+        r'parse_str.*\$_(?:GET|POST|REQUEST)',  # 只检测来自用户输入的解析
         r'import_request_variables',
-        r'$$',  # 动态变量
     ]
 }
 
@@ -376,74 +374,105 @@ def static_code_analysis(files_info, version):
     privilege_escalation = len(findings.get('privilege_escalation', []))
     dangerous_functions = len(findings.get('dangerous_functions', []))
     
-    # 严格扣分规则
+    # 智能扣分规则（优化误报）
     # 1. 高危后门特征（eval($var), assert($var)等）
-    if backdoor_critical > 0:
-        deduct = min(backdoor_critical * 2, 30)
+    if backdoor_critical > 50:
+        deduct = 30
         deductions += deduct
-        risk_details.append(f"🚨 高危后门特征: {backdoor_critical}处 (-{deduct}分)")
+        risk_details.append(f"🚨 高危后门特征（严重）: {backdoor_critical}处 (-{deduct}分)")
+    elif backdoor_critical > 20:
+        deduct = 20
+        deductions += deduct
+        risk_details.append(f"🚨 高危后门特征（中等）: {backdoor_critical}处 (-{deduct}分)")
+    elif backdoor_critical > 5:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"🚨 高危后门特征（轻微）: {backdoor_critical}处 (-{deduct}分)")
     
     # 2. 代码混淆（base64长字符串等）
-    if obfuscation_critical > 0:
-        deduct = min(obfuscation_critical * 2, 25)
+    if obfuscation_critical > 30:
+        deduct = 25
         deductions += deduct
-        risk_details.append(f"🔒 代码混淆: {obfuscation_critical}处 (-{deduct}分)")
+        risk_details.append(f"🔒 代码混淆（严重）: {obfuscation_critical}处 (-{deduct}分)")
+    elif obfuscation_critical > 10:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"🔒 代码混淆（中等）: {obfuscation_critical}处 (-{deduct}分)")
     
-    # 3. 广告/统计追踪（最主要的去除目标）
+    # 3. 广告/统计追踪（最主要问题）
     if tracking_ads > 50:
         deduct = 25
-        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
         deductions += deduct
+        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
     elif tracking_ads > 20:
         deduct = 15
-        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
         deductions += deduct
+        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
     elif tracking_ads > 0:
         deduct = 5
-        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
         deductions += deduct
+        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
     
-    # 4. 敏感数据泄露
-    if data_leak > 0:
-        deduct = min(data_leak * 5, 20)
+    # 4. 敏感数据泄露（适度扣分）
+    if data_leak > 100:
+        deduct = 20
+        deductions += deduct
+        risk_details.append(f"🔐 数据泄露风险: {data_leak}处 (-{deduct}分)")
+    elif data_leak > 50:
+        deduct = 10
         deductions += deduct
         risk_details.append(f"🔐 数据泄露风险: {data_leak}处 (-{deduct}分)")
     
     # 5. SQL注入风险
-    if sql_injection_risk > 5:
+    if sql_injection_risk > 10:
         deduct = 15
         deductions += deduct
         risk_details.append(f"🗄️ SQL注入风险: {sql_injection_risk}处 (-{deduct}分)")
     
-    # 6. 可疑域名
-    if suspicious_domain > 20:
-        deduct = 10
+    # 6. 可疑域名（优化后应该很少）
+    if suspicious_domain > 10:
+        deduct = 15
         deductions += deduct
-        risk_details.append(f"🌍 可疑域名: {suspicious_domain}处 (-{deduct}分)")
+        risk_details.append(f"🌍 可疑域名/IP请求: {suspicious_domain}处 (-{deduct}分)")
+    elif suspicious_domain > 0:
+        deduct = 5
+        deductions += deduct
+        risk_details.append(f"🌍 可疑域名/IP请求: {suspicious_domain}处 (-{deduct}分)")
     
-    # 7. 权限提升
-    if privilege_escalation > 10:
+    # 7. 权限提升（适度扣分）
+    if privilege_escalation > 30:
         deduct = 15
         deductions += deduct
         risk_details.append(f"🔓 权限提升: {privilege_escalation}处 (-{deduct}分)")
+    elif privilege_escalation > 20:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"🔓 权限提升: {privilege_escalation}处 (-{deduct}分)")
     
-    # 8. 危险函数
-    if dangerous_functions > 10:
+    # 8. 危险函数（优化后应该很少）
+    if dangerous_functions > 20:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
+    elif dangerous_functions > 10:
         deduct = 10
         deductions += deduct
         risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
+    elif dangerous_functions > 0:
+        deduct = 5
+        deductions += deduct
+        risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
     
-    # 注意：命令执行、远程连接、文件传输是管理面板的正常功能
-    # 只在数量异常时才扣分
-    if command_execution > 300:
+    # 命令执行和远程连接是管理面板的核心功能，只在异常多时才扣分
+    if command_execution > 500:
         deduct = 10
         deductions += deduct
-        risk_details.append(f"🔧 命令执行过多: {command_execution}处 (-{deduct}分)")
+        risk_details.append(f"🔧 命令执行异常多: {command_execution}处 (-{deduct}分)")
     
-    if remote_connection > 20:
+    if remote_connection > 50:
         deduct = 10
         deductions += deduct
-        risk_details.append(f"🌐 远程连接过多: {remote_connection}处 (-{deduct}分)")
+        risk_details.append(f"🌐 远程连接异常多: {remote_connection}处 (-{deduct}分)")
     
     # 最终评分
     security_score = max(0, base_score - deductions)
