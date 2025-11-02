@@ -155,15 +155,12 @@ def main():
         # 这里可以添加交互或直接返回
         # return False
     
-    # 生成Markdown报告
-    print("\n正在生成检测报告...")
-    from automation import generate_report
-    markdown_report = generate_report.generate_markdown_report(result_data)
-    
+    # 检查报告文件是否已存在（由步骤4生成）
     report_file = os.path.join(download_dir, f'SECURITY_REPORT_{version}.md')
-    with open(report_file, 'w', encoding='utf-8') as f:
-        f.write(markdown_report)
-    print(f"✅ 报告已生成: {report_file}")
+    if os.path.exists(report_file):
+        print(f"\n✅ 使用已生成的报告: {report_file}")
+    else:
+        print(f"\n⚠️  报告文件不存在，跳过: {report_file}")
     
     # 更新version.json
     release_date = result_data.get('download_time', '').split()[0] if result_data.get('download_time') else ''

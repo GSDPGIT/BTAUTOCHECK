@@ -21,7 +21,7 @@ with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
 GEMINI_API_KEY = config['gemini_api_key']
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 def calculate_md5(file_path):
     """计算文件MD5"""
