@@ -1,0 +1,12 @@
+# 忽略下载的文件和临时文件
+downloads/
+*.pyc
+__pycache__/
+*.log
+new_version.json
+check_result_*.json
+security_report_*.json
+
+# 保留示例配置但忽略实际配置
+config.json
+

@@ -1,0 +1,19 @@
+{
+    "gemini_api_key": "YOUR_GEMINI_API_KEY_HERE",
+    "github_username": "GSDPGIT",
+    "github_repo": "bt-panel-files",
+    "github_token": "",
+    "check_interval_hours": 24,
+    "bt_api_url": "https://www.bt.cn/api/panel/getVersion",
+    "bt_download_base": "https://download.bt.cn/install/update",
+    "current_version": "11.2.0",
+    "notification_enabled": true,
+    "auto_upload": false,
+    "security_threshold": 95,
+    "_comments": {
+        "gemini_api_key": "从 https://aistudio.google.com/app/apikey 获取",
+        "auto_upload": "true=自动推送到GitHub, false=需手动推送（推荐）",
+        "security_threshold": "安全评分阈值，低于此分数需人工审查"
+    }
+}
+
