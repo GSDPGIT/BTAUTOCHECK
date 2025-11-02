@@ -31,7 +31,7 @@ def run_script(script_name, description):
         elif result.returncode == 1 and script_name == '1_check_new_version.py':
             # 检测到新版本（exit code 1表示有新版本）
             print(f"🎉 发现新版本！")
-            return True
+            return 'new_version'  # 返回特殊标记表示有新版本
         else:
             print(f"❌ {description} - 失败")
             return False
@@ -50,11 +50,15 @@ def main():
     print("=" * 70)
     
     # 步骤1: 检测新版本
-    if not run_script('1_check_new_version.py', '检测新版本'):
+    check_result = run_script('1_check_new_version.py', '检测新版本')
+    if check_result == True:
         print("\n✅ 当前已是最新版本，无需更新")
         return True
-    
-    print("\n🎉 发现新版本，开始自动处理流程...")
+    elif check_result == 'new_version':
+        print("\n🎉 发现新版本，开始自动处理流程...")
+    else:
+        print("\n❌ 版本检测失败")
+        return False
     
     # 步骤2: 下载并基础检测
     if not run_script('2_download_and_check.py', '下载文件并基础检查'):
