@@ -14,6 +14,8 @@ from datetime import datetime
 
 # 加载配置
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
+VERSION_FILE = os.path.join(os.path.dirname(__file__), 'new_version.json')
+
 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
