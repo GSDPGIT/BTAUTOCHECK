@@ -156,19 +156,19 @@ def main():
     result_path = os.path.join(download_dir, latest_result)
     
     with open(result_path, 'r', encoding='utf-8') as f:
-        result_data = json.load(f)
-    
+    result_data = json.load(f)
+
     version = result_data['version']
     md5 = result_data['md5']
-    ai_analysis = result_data.get('ai_analysis', {})
+    static_analysis = result_data.get('static_analysis', {})
     
     print(f"\n版本: {version}")
     print(f"MD5: {md5}")
-    print(f"安全评分: {ai_analysis.get('security_score', 0)}/100")
+    print(f"安全评分: {static_analysis.get('security_score', 0)}/100")
     
     # 检查是否通过安全检测
-    if not ai_analysis.get('is_safe', False):
-        print("\n⚠️  警告：此版本未通过AI安全检测")
+    if not static_analysis.get('is_safe', False):
+        print("\n⚠️  警告：此版本未通过静态安全检测")
         print("   是否继续？(y/n)")
         # 这里可以添加交互或直接返回
         # return False

@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BT-Panel AI安全检测脚本
-功能：使用Gemini AI对下载的文件进行深度安全分析
+BT-Panel 静态安全检测脚本
+功能：使用规则引擎对下载的文件进行严格安全分析
 """
 
-import requests
 import json
 import os
 import zipfile
 import sys
 import hashlib
-import time
+import re
 from datetime import datetime
 
 # 加载配置
@@ -21,9 +20,76 @@ VERSION_FILE = os.path.join(os.path.dirname(__file__), 'new_version.json')
 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
-GEMINI_API_KEY = config['gemini_api_key']
-# 使用Gemini 2.5 Flash模型（均衡性能和成本）
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+# 恶意模式特征库（严格模式）
+MALICIOUS_PATTERNS = {
+    # 后门特征
+    'backdoor': [
+        r'eval\s*\(',
+        r'exec\s*\(',
+        r'system\s*\(',
+        r'passthru\s*\(',
+        r'shell_exec\s*\(',
+        r'popen\s*\(',
+        r'proc_open\s*\(',
+        r'base64_decode\s*\(',
+        r'gzinflate\s*\(',
+        r'str_rot13\s*\(',
+        r'assert\s*\(',
+        r'preg_replace.*\/e',
+        r'create_function',
+        r'\$\{[^\}]*\}',  # 变量变量
+    ],
+    # 远程连接
+    'remote_connection': [
+        r'curl_exec',
+        r'fsockopen',
+        r'pfsockopen',
+        r'stream_socket_client',
+        r'socket_create',
+        r'ftp_connect',
+        r'ssh2_connect',
+    ],
+    # 文件操作风险
+    'file_operation': [
+        r'file_put_contents',
+        r'fwrite',
+        r'fputs',
+        r'file_get_contents.*http',
+        r'readfile',
+        r'unlink',
+        r'rmdir',
+    ],
+    # 数据库操作
+    'database': [
+        r'mysql_query.*\$',
+        r'mysqli_query.*\$',
+        r'pg_query.*\$',
+        r'sqlite_query.*\$',
+        r'->query\(.*\$',
+    ],
+    # 加密/混淆
+    'obfuscation': [
+        r'[\x00-\x08\x0b-\x0c\x0e-\x1f]',  # 控制字符
+        r'\\x[0-9a-fA-F]{2}',  # 十六进制编码
+        r'chr\(\d+\)',  # 字符编码
+    ],
+    # 上传/下载
+    'upload_download': [
+        r'move_uploaded_file',
+        r'copy\s*\(.*http',
+        r'file_get_contents\s*\(.*\$',
+    ],
+    # 广告/统计
+    'tracking': [
+        r'google-analytics\.com',
+        r'baidu\.com/tongji',
+        r'cnzz\.com',
+        r'umeng\.com',
+        r'bt\.cn/Api',
+        r'bt\.cn/api',
+        r'api\.bt\.cn',
+    ]
+}
 
 def calculate_md5(file_path):
     """计算文件MD5"""
@@ -113,150 +179,142 @@ def extract_and_analyze_files(zip_path, extract_dir):
         print(f"❌ 解压失败: {e}")
         return []
 
-def ai_security_analysis(files_info, version):
-    """使用Gemini AI进行安全分析（优化免费套餐速率限制）"""
+def static_code_analysis(files_info, version):
+    """静态代码安全分析（规则引擎 - 严格模式）"""
     print("\n" + "=" * 60)
-    print("AI安全分析（使用Gemini - 免费套餐优化模式）")
+    print("静态安全分析（规则引擎 - 严格模式）")
     print("=" * 60)
     
-    if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
-        print("⚠️  Gemini API Key未配置，跳过AI分析")
-        return {
-            'status': 'skipped',
-            'reason': 'API key not configured',
-            'recommendation': 'manual_review'
-        }
+    print(f"分析文件数量: {len(files_info)}")
     
-    # 免费套餐优化：只分析前10个最重要的文件（减少token消耗）
-    files_to_analyze = files_info[:10] if len(files_info) > 10 else files_info
-    print(f"免费套餐限制：分析前 {len(files_to_analyze)} 个关键文件（总共{len(files_info)}个）")
+    # 分析结果
+    findings = {
+        'backdoor': [],
+        'remote_connection': [],
+        'file_operation': [],
+        'database': [],
+        'obfuscation': [],
+        'upload_download': [],
+        'tracking': []
+    }
     
-    # 准备分析提示词（简化以减少token）
-    prompt = f"""安全审计：宝塔面板 {version}
-
-关键文件（共{len(files_to_analyze)}个）:
-"""
+    risky_files = set()
+    total_issues = 0
     
-    # 添加文件信息（简化格式）
-    for i, file_info in enumerate(files_to_analyze, 1):
-        prompt += f"{i}. {file_info['path']}\n"
-    
-    prompt += f"""
-检查项：后门、恶意代码、隐私泄露、广告、漏洞
-
-返回JSON:
-{{
-    "security_score": 0-100,
-    "is_safe": true/false,
-    "main_findings": ["..."],
-    "summary": "..."
-}}"""
-    
-    # 免费套餐：添加指数退避重试机制
-    max_retries = 3
-    retry_delay = 5  # 初始延迟5秒
-    
-    for attempt in range(max_retries):
-        try:
-            if attempt > 0:
-                print(f"\n⏳ 等待 {retry_delay} 秒后重试（第 {attempt + 1}/{max_retries} 次）...")
-                time.sleep(retry_delay)
-                retry_delay *= 2  # 指数退避：5秒 -> 10秒 -> 20秒
-            
-            print(f"正在调用Gemini AI分析... (尝试 {attempt + 1}/{max_retries})")
-            
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            
-            data = {
-                "contents": [{
-                    "parts": [{
-                        "text": prompt
-                    }]
-                }]
-            }
-            
-            response = requests.post(
-                f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-                headers=headers,
-                json=data,
-                timeout=60
-            )
-            
-            # 处理429速率限制错误
-            if response.status_code == 429:
-                print(f"⚠️  速率限制（429）：超出配额，需要等待...")
-                if attempt < max_retries - 1:
-                    continue  # 重试
-                else:
-                    print("❌ 已达最大重试次数，建议稍后再试或升级套餐")
-                    return {
-                        'status': 'rate_limited',
-                        'security_score': 0,
-                        'is_safe': False,
-                        'summary': '免费套餐速率限制，请等待1分钟后重试'
-                    }
-            
-            if response.status_code == 200:
-                result = response.json()
-                
-                # 解析Gemini响应
-                if 'candidates' in result and len(result['candidates']) > 0:
-                    text = result['candidates'][0]['content']['parts'][0]['text']
-                    print("\n✅ AI分析完成")
-                    
-                    # 尝试提取JSON
-                    try:
-                        # 提取JSON部分
-                        if '```json' in text:
-                            json_text = text.split('```json')[1].split('```')[0].strip()
-                        elif '{' in text and '}' in text:
-                            json_text = text[text.find('{'):text.rfind('}')+1]
-                        else:
-                            json_text = text
-                        
-                        ai_result = json.loads(json_text)
-                        print(f"\n📊 安全评分: {ai_result.get('security_score', 0)}/100")
-                        return ai_result
-                    except Exception as parse_error:
-                        print(f"⚠️  JSON解析失败: {parse_error}")
-                        # 如果无法解析JSON，返回原始文本
-                        return {
-                            'status': 'analyzed',
-                            'raw_response': text,
-                            'security_score': 75,  # 默认中等评分
-                            'is_safe': True,
-                            'summary': 'AI分析完成但格式异常，需人工审查'
-                        }
-                else:
-                    print("❌ AI响应格式异常")
-                    return {'status': 'error', 'reason': 'Invalid response format', 'security_score': 0, 'is_safe': False}
-            else:
-                print(f"❌ API调用失败: {response.status_code}")
-                print(f"   响应: {response.text}")
-                if attempt < max_retries - 1:
-                    continue  # 重试其他错误
-                return {'status': 'error', 'reason': f'API error {response.status_code}', 'security_score': 0, 'is_safe': False}
+    # 遍历所有文件进行检测
+    for file_info in files_info:
+        file_path = file_info['path']
+        content = file_info['content']
         
-        except Exception as e:
-            print(f"❌ 请求失败: {e}")
-            if attempt < max_retries - 1:
-                continue
-            return {'status': 'error', 'reason': str(e), 'security_score': 0, 'is_safe': False}
+        # 对每个文件检测所有恶意模式
+        for category, patterns in MALICIOUS_PATTERNS.items():
+            for pattern in patterns:
+                try:
+                    matches = re.findall(pattern, content, re.IGNORECASE)
+                    if matches:
+                        finding = {
+                            'file': file_path,
+                            'pattern': pattern,
+                            'matches': len(matches),
+                            'samples': matches[:3]  # 只保留前3个样本
+                        }
+                        findings[category].append(finding)
+                        risky_files.add(file_path)
+                        total_issues += len(matches)
+                except:
+                    pass
     
-    # 所有重试都失败
+    # 打印详细发现
+    print("\n" + "=" * 60)
+    print("检测结果详情")
+    print("=" * 60)
+    
+    for category, items in findings.items():
+        if items:
+            print(f"\n⚠️  [{category.upper()}] 发现 {len(items)} 处可疑代码:")
+            for item in items[:5]:  # 只显示前5个
+                print(f"   - {item['file']}: {item['matches']} 处匹配")
+    
+    # 计算安全评分
+    base_score = 100
+    
+    # 扣分规则（严格模式）
+    deductions = {
+        'backdoor': 30,           # 后门特征：严重
+        'remote_connection': 20,  # 远程连接：严重
+        'obfuscation': 25,       # 代码混淆：严重
+        'upload_download': 15,    # 上传下载：中等
+        'file_operation': 10,     # 文件操作：中等
+        'database': 10,           # 数据库操作：中等
+        'tracking': 20            # 广告统计：严重
+    }
+    
+    for category, items in findings.items():
+        if items:
+            base_score -= deductions.get(category, 5)
+    
+    # 如果有大量问题，进一步降低评分
+    if total_issues > 100:
+        base_score -= 20
+    elif total_issues > 50:
+        base_score -= 10
+    
+    security_score = max(0, base_score)
+    
+    # 判断是否安全
+    is_safe = security_score >= config.get('security_threshold', 95)
+    
+    # 生成建议
+    recommendations = []
+    files_to_remove = []
+    
+    if findings['backdoor']:
+        recommendations.append("发现后门特征，强烈建议人工审查")
+        files_to_remove.extend([f['file'] for f in findings['backdoor']])
+    
+    if findings['tracking']:
+        recommendations.append("发现广告/统计代码，建议移除")
+        files_to_remove.extend([f['file'] for f in findings['tracking']])
+    
+    if findings['obfuscation']:
+        recommendations.append("发现代码混淆，存在安全风险")
+    
+    if findings['remote_connection']:
+        recommendations.append("发现远程连接功能，需谨慎使用")
+    
+    # 生成总结
+    if security_score >= 95:
+        summary = "代码质量良好，未发现严重安全问题"
+    elif security_score >= 80:
+        summary = "存在少量可疑代码，建议人工审查"
+    elif security_score >= 60:
+        summary = "存在多处安全风险，需要仔细审查"
+    else:
+        summary = "发现大量安全问题，不建议直接使用"
+    
+    print(f"\n" + "=" * 60)
+    print(f"📊 安全评分: {security_score}/100")
+    print(f"🔍 风险文件数: {len(risky_files)}/{len(files_info)}")
+    print(f"⚠️  问题总数: {total_issues}")
+    print(f"💡 总结: {summary}")
+    print("=" * 60)
+    
     return {
-        'status': 'failed',
-        'security_score': 0,
-        'is_safe': False,
-        'summary': '所有API调用尝试均失败'
+        'status': 'completed',
+        'security_score': security_score,
+        'is_safe': is_safe,
+        'total_issues': total_issues,
+        'risky_files': len(risky_files),
+        'findings': findings,
+        'recommendations': recommendations,
+        'files_to_remove': list(set(files_to_remove)),
+        'summary': summary
     }
 
 def main():
     """主函数"""
     print("=" * 60)
-    print("BT-Panel 下载与AI安全检测")
+    print("BT-Panel 静态安全检测（规则引擎）")
     print("=" * 60)
     
     # 读取版本信息
@@ -275,13 +333,14 @@ def main():
     extract_dir = os.path.join(download_dir, f'extracted_{version}')
     os.makedirs(download_dir, exist_ok=True)
     
-    # 下载文件
+    # 检查文件是否存在
     filename = f"LinuxPanel-{version}.zip"
     file_path = os.path.join(download_dir, filename)
     
     if not os.path.exists(file_path):
-        if not download_file(download_url, file_path):
-            return False
+        print(f"❌ 文件不存在: {file_path}")
+        print("   请先运行 2_download_and_check.py")
+        return False
     else:
         print(f"文件已存在: {file_path}")
     
@@ -296,8 +355,8 @@ def main():
     # 解压并收集文件
     files_info = extract_and_analyze_files(file_path, extract_dir)
     
-    # AI安全分析
-    ai_result = ai_security_analysis(files_info, version)
+    # 静态安全分析
+    static_result = static_code_analysis(files_info, version)
     
     # 保存完整结果
     final_result = {
@@ -307,7 +366,7 @@ def main():
         'download_url': download_url,
         'check_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'basic_check': basic_check,
-        'ai_analysis': ai_result,
+        'static_analysis': static_result,
         'files_analyzed': len(files_info)
     }
     
@@ -318,13 +377,13 @@ def main():
     print(f"\n✅ 完整检测报告已保存: {result_file}")
     
     # 判断是否安全
-    if ai_result.get('is_safe', False) and ai_result.get('security_score', 0) >= config['security_threshold']:
-        print(f"\n🎉 安全检测通过！(评分: {ai_result.get('security_score')}/100)")
+    if static_result.get('is_safe', False) and static_result.get('security_score', 0) >= config['security_threshold']:
+        print(f"\n🎉 安全检测通过！(评分: {static_result.get('security_score')}/100)")
         print("\n下一步：运行 4_generate_report.py 生成检测报告")
         return True
     else:
         print(f"\n⚠️  安全检测未通过或需要人工审查")
-        print(f"   评分: {ai_result.get('security_score', 0)}/100")
+        print(f"   评分: {static_result.get('security_score', 0)}/100")
         print(f"   阈值: {config['security_threshold']}")
         return False
 

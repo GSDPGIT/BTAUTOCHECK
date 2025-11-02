@@ -15,13 +15,13 @@ def generate_markdown_report(result_data):
     version = result_data['version']
     md5 = result_data['md5']
     basic_check = result_data.get('basic_check', {})
-    ai_analysis = result_data.get('ai_analysis', {})
+    static_analysis = result_data.get('static_analysis', {})
     
     report = f"""# BT-Panel {version} 安全检测报告
 
 > **检测时间**: {result_data.get('check_time', 'N/A')}  
 > **检测版本**: Linux Panel {version}  
-> **检测状态**: {'✅ 通过' if ai_analysis.get('is_safe', False) else '⚠️ 需审查'}
+> **检测状态**: {'✅ 通过' if static_analysis.get('is_safe', False) else '⚠️ 需审查'}
 
 ---
 
@@ -51,55 +51,73 @@ def generate_markdown_report(result_data):
         for file in basic_check['suspicious_files'][:10]:
             report += f"- `{file}`\n"
     
-    report += "\n---\n\n## 🤖 AI安全分析\n\n"
+    report += "\n---\n\n## 🛡️ 静态安全分析（规则引擎）\n\n"
     
-    if ai_analysis.get('status') == 'skipped':
-        report += "⚠️ AI分析已跳过（API Key未配置）\n\n"
-        report += "**建议**: 进行人工安全审查\n"
-    elif ai_analysis.get('status') == 'error':
-        report += f"❌ AI分析失败: {ai_analysis.get('reason', 'Unknown error')}\n\n"
-        report += "**建议**: 进行人工安全审查\n"
-    else:
-        score = ai_analysis.get('security_score', 0)
-        is_safe = ai_analysis.get('is_safe', False)
+    score = static_analysis.get('security_score', 0)
+    is_safe = static_analysis.get('is_safe', False)
+    
+    report += f"### 安全评分: {score}/100\n\n"
+    report += f"**结论**: {'✅ 安全可用' if is_safe else '⚠️ 需要审查'}\n\n"
+    
+    # 统计信息
+    report += f"**检测统计**:\n"
+    report += f"- 总问题数: {static_analysis.get('total_issues', 0)}\n"
+    report += f"- 风险文件数: {static_analysis.get('risky_files', 0)}/{result_data.get('files_analyzed', 0)}\n\n"
+    
+    # 详细发现
+    findings = static_analysis.get('findings', {})
+    if any(findings.values()):
+        report += "### 检测发现详情\n\n"
         
-        report += f"### 安全评分: {score}/100\n\n"
-        report += f"**结论**: {'✅ 安全可用' if is_safe else '⚠️ 需要审查'}\n\n"
+        category_names = {
+            'backdoor': '🚨 后门特征',
+            'remote_connection': '🌐 远程连接',
+            'obfuscation': '🔒 代码混淆',
+            'file_operation': '📁 文件操作',
+            'database': '🗄️ 数据库操作',
+            'upload_download': '⬆️ 上传下载',
+            'tracking': '📊 广告统计'
+        }
         
-        if ai_analysis.get('main_findings'):
-            report += "### 主要发现\n\n"
-            for finding in ai_analysis['main_findings']:
-                report += f"- {finding}\n"
-            report += "\n"
-        
-        if ai_analysis.get('recommendations'):
-            report += "### AI建议\n\n"
-            for rec in ai_analysis['recommendations']:
-                report += f"- {rec}\n"
-            report += "\n"
-        
-        if ai_analysis.get('files_to_remove'):
-            report += "### 建议移除的文件\n\n"
-            for file in ai_analysis['files_to_remove']:
-                report += f"- `{file}`\n"
-            report += "\n"
-        
-        if ai_analysis.get('summary'):
-            report += f"### 总结\n\n{ai_analysis['summary']}\n\n"
+        for category, items in findings.items():
+            if items:
+                report += f"\n**{category_names.get(category, category)}** ({len(items)} 处)\n\n"
+                for item in items[:5]:  # 只显示前5个
+                    report += f"- `{item['file']}`: {item['matches']} 处匹配\n"
+                if len(items) > 5:
+                    report += f"- ... 还有 {len(items) - 5} 个文件\n"
+                report += "\n"
+    
+    if static_analysis.get('recommendations'):
+        report += "### 安全建议\n\n"
+        for rec in static_analysis['recommendations']:
+            report += f"- {rec}\n"
+        report += "\n"
+    
+    if static_analysis.get('files_to_remove'):
+        report += "### 建议移除的文件\n\n"
+        for file in list(set(static_analysis['files_to_remove']))[:20]:
+            report += f"- `{file}`\n"
+        if len(static_analysis['files_to_remove']) > 20:
+            report += f"- ... 还有 {len(static_analysis['files_to_remove']) - 20} 个文件\n"
+        report += "\n"
+    
+    if static_analysis.get('summary'):
+        report += f"### 总结\n\n{static_analysis['summary']}\n\n"
     
     report += "---\n\n"
     report += f"## 📊 检测统计\n\n"
     report += f"- **分析文件数**: {result_data.get('files_analyzed', 0)}\n"
-    report += f"- **检测方式**: 基础检查 + AI深度分析\n"
-    report += f"- **检测工具**: Gemini AI + Python脚本\n"
+    report += f"- **检测方式**: 基础检查 + 静态规则分析\n"
+    report += f"- **检测工具**: Python脚本 + 规则引擎\n"
     report += f"- **检测日期**: {result_data.get('check_time', 'N/A')}\n"
     
     report += "\n---\n\n"
     report += f"## ✅ 检测结论\n\n"
     
-    if ai_analysis.get('is_safe', False) and ai_analysis.get('security_score', 0) >= 95:
+    if static_analysis.get('is_safe', False) and static_analysis.get('security_score', 0) >= 95:
         report += f"✅ **通过检测**\n\n"
-        report += f"此版本（{version}）经过AI安全分析，未发现明显的安全风险，建议可以使用。\n\n"
+        report += f"此版本（{version}）经过静态规则分析，未发现明显的安全风险，建议可以使用。\n\n"
         report += f"**MD5**: `{md5}`\n\n"
         report += "**下一步**: 运行 5_update_and_upload.py 自动更新并上传到GitHub\n"
     else:
