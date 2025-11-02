@@ -20,74 +20,127 @@ VERSION_FILE = os.path.join(os.path.dirname(__file__), 'new_version.json')
 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
-# 恶意模式特征库（严格模式）
+# 恶意模式特征库（超严格模式）
 MALICIOUS_PATTERNS = {
-    # 后门特征
-    'backdoor': [
-        r'eval\s*\(',
-        r'exec\s*\(',
+    # 🚨 后门特征（高危）
+    'backdoor_critical': [
+        r'eval\s*\(\s*\$',  # eval($xxx) - 变量执行
+        r'assert\s*\(\s*\$',  # assert($xxx) - 断言执行
+        r'create_function',  # 动态函数创建
+        r'preg_replace.*\/e',  # 正则执行模式
+        r'call_user_func',  # 动态函数调用
+        r'array_map.*assert',  # 数组映射执行
+        r'\$\$',  # 变量变量
+    ],
+    
+    # 🔧 系统命令执行
+    'command_execution': [
         r'system\s*\(',
+        r'exec\s*\(',
         r'passthru\s*\(',
         r'shell_exec\s*\(',
         r'popen\s*\(',
         r'proc_open\s*\(',
-        r'base64_decode\s*\(',
-        r'gzinflate\s*\(',
-        r'str_rot13\s*\(',
-        r'assert\s*\(',
-        r'preg_replace.*\/e',
-        r'create_function',
-        r'\$\{[^\}]*\}',  # 变量变量
+        r'pcntl_exec\s*\(',
+        r'subprocess\.call',
+        r'subprocess\.Popen',
+        r'os\.system',
+        r'os\.popen',
     ],
-    # 远程连接
+    
+    # 🌐 远程连接（高危）
     'remote_connection': [
-        r'curl_exec',
-        r'fsockopen',
-        r'pfsockopen',
+        r'fsockopen\s*\(',
+        r'pfsockopen\s*\(',
         r'stream_socket_client',
         r'socket_create',
+        r'socket_connect',
+        r'curl_exec',
         r'ftp_connect',
         r'ssh2_connect',
+        r'telnet',
     ],
-    # 文件操作风险
-    'file_operation': [
-        r'file_put_contents',
-        r'fwrite',
-        r'fputs',
-        r'file_get_contents.*http',
-        r'readfile',
-        r'unlink',
-        r'rmdir',
+    
+    # 🔒 代码混淆/加密（高危）
+    'obfuscation_critical': [
+        r'base64_decode\s*\(\s*["\'][\w+/=]{50,}',  # Base64长字符串解码
+        r'gzinflate\s*\(',
+        r'gzuncompress\s*\(',
+        r'str_rot13\s*\(',
+        r'convert_uudecode',
+        r'gzdeflate',
+        r'bzdecompress',
     ],
-    # 数据库操作
-    'database': [
-        r'mysql_query.*\$',
-        r'mysqli_query.*\$',
-        r'pg_query.*\$',
-        r'sqlite_query.*\$',
-        r'->query\(.*\$',
-    ],
-    # 加密/混淆
-    'obfuscation': [
-        r'[\x00-\x08\x0b-\x0c\x0e-\x1f]',  # 控制字符
-        r'\\x[0-9a-fA-F]{2}',  # 十六进制编码
-        r'chr\(\d+\)',  # 字符编码
-    ],
-    # 上传/下载
-    'upload_download': [
-        r'move_uploaded_file',
-        r'copy\s*\(.*http',
-        r'file_get_contents\s*\(.*\$',
-    ],
-    # 广告/统计
-    'tracking': [
+    
+    # 📊 广告/统计（严格检测）
+    'tracking_ads': [
         r'google-analytics\.com',
         r'baidu\.com/tongji',
         r'cnzz\.com',
         r'umeng\.com',
-        r'bt\.cn/Api',
-        r'bt\.cn/api',
+        r'bt\.cn/Api/Panel',
         r'api\.bt\.cn',
+        r'bt\.cn/api/panel',
+        r'io\.bt\.sb',
+        r'download\.bt\.cn.*userInfo',
+        r'statistics',
+        r'analytics',
+        r'/tongji/',
+    ],
+    
+    # 🔐 敏感数据泄露
+    'data_leak': [
+        r'curl.*-d.*username',
+        r'curl.*-d.*password',
+        r'file_get_contents.*username',
+        r'password.*http',
+        r'token.*http',
+        r'apikey.*http',
+    ],
+    
+    # 🌍 可疑域名/IP
+    'suspicious_domain': [
+        r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',  # IP地址
+        r'http://\d+\.\d+\.\d+\.\d+',  # HTTP IP访问
+        r'\.ru[/"]',  # 俄罗斯域名
+        r'\.cn/[a-zA-Z0-9]{8,}',  # 短域名疑似
+    ],
+    
+    # 📤 文件下载/上传
+    'file_transfer': [
+        r'wget\s+http',
+        r'curl.*-O.*http',
+        r'download.*http',
+        r'file_get_contents\s*\(\s*["\']http',
+    ],
+    
+    # 🗄️ 数据库注入风险
+    'sql_injection_risk': [
+        r'mysql_query.*\$_GET',
+        r'mysql_query.*\$_POST',
+        r'->query.*\$_GET',
+        r'->query.*\$_POST',
+        r'execute.*\$_GET',
+        r'execute.*\$_POST',
+    ],
+    
+    # 🔓 权限提升
+    'privilege_escalation': [
+        r'chmod\s+777',
+        r'chown\s+root',
+        r'sudo\s+',
+        r'su\s+-',
+        r'setuid',
+        r'setgid',
+    ],
+    
+    # 💀 危险函数
+    'dangerous_functions': [
+        r'unserialize\s*\(\s*\$',
+        r'extract\s*\(\s*\$',
+        r'parse_str.*\$',
+        r'import_request_variables',
+        r'$$',  # 动态变量
     ]
 }
 
@@ -141,38 +194,75 @@ def basic_security_check(zip_path):
     return checks
 
 def extract_and_analyze_files(zip_path, extract_dir):
-    """解压并分析文件"""
-    print("\n正在解压文件...")
+    """解压并深度分析所有文件（超严格模式）"""
+    print("\n" + "=" * 60)
+    print("📦 解压并收集文件信息")
+    print("=" * 60)
     
     try:
+        # 解压文件
+        print("正在解压文件...")
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_dir)
-        
         print(f"✅ 解压完成: {extract_dir}")
         
-        # 收集需要分析的文件
+        # 收集所有文件信息
+        all_files = []
         files_to_check = []
         
+        print("\n正在扫描文件...")
         for root, dirs, files in os.walk(extract_dir):
             for file in files:
                 file_path = os.path.join(root, file)
                 rel_path = os.path.relpath(file_path, extract_dir)
-                
-                # 只检查shell脚本和Python文件
-                if file.endswith(('.sh', '.py', '.php')):
-                    try:
-                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read()
-                        
-                        files_to_check.append({
-                            'path': rel_path,
-                            'size': len(content),
-                            'content': content[:10000] if len(content) > 10000 else content  # 限制长度
-                        })
-                    except:
-                        pass
+                all_files.append(rel_path)
         
-        print(f"✅ 收集到 {len(files_to_check)} 个脚本文件待分析")
+        print(f"📊 总文件数: {len(all_files)}")
+        
+        # 严格模式：检查所有脚本、配置、可执行文件
+        check_extensions = (
+            '.sh', '.py', '.php', '.pl', '.js', '.json', 
+            '.conf', '.cfg', '.ini', '.xml', '.yml', '.yaml',
+            '.html', '.htm', '.sql', '.c', '.cpp', '.go'
+        )
+        
+        print("\n正在读取文件内容...")
+        for i, file_name in enumerate(all_files, 1):
+            if i % 100 == 0:
+                print(f"进度: {i}/{len(all_files)} ({i*100//len(all_files)}%)")
+            
+            file_path = os.path.join(extract_dir, file_name)
+            
+            # 检查文件扩展名
+            if file_name.lower().endswith(check_extensions):
+                try:
+                    # 读取文件内容
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                    
+                    # 不限制内容长度，全量分析
+                    files_to_check.append({
+                        'path': file_name,
+                        'size': len(content),
+                        'content': content,
+                        'type': os.path.splitext(file_name)[1]
+                    })
+                except Exception as e:
+                    # 二进制文件或读取失败，跳过
+                    pass
+        
+        print(f"\n✅ 收集到 {len(files_to_check)} 个文件待分析")
+        print(f"   类型分布: ")
+        
+        # 统计文件类型
+        type_count = {}
+        for f in files_to_check:
+            ext = f['type']
+            type_count[ext] = type_count.get(ext, 0) + 1
+        
+        for ext, count in sorted(type_count.items(), key=lambda x: -x[1])[:10]:
+            print(f"   - {ext}: {count} 个")
+        
         return files_to_check
     
     except Exception as e:
@@ -180,140 +270,263 @@ def extract_and_analyze_files(zip_path, extract_dir):
         return []
 
 def static_code_analysis(files_info, version):
-    """静态代码安全分析（规则引擎 - 严格模式）"""
+    """静态代码安全分析（规则引擎 - 超严格模式）"""
     print("\n" + "=" * 60)
-    print("静态安全分析（规则引擎 - 严格模式）")
+    print("🔍 静态安全分析（规则引擎 - 超严格模式）")
     print("=" * 60)
     
-    print(f"分析文件数量: {len(files_info)}")
+    print(f"\n📊 开始分析 {len(files_info)} 个文件...")
+    print("=" * 60)
     
-    # 分析结果
-    findings = {
-        'backdoor': [],
-        'remote_connection': [],
-        'file_operation': [],
-        'database': [],
-        'obfuscation': [],
-        'upload_download': [],
-        'tracking': []
-    }
+    # 分析结果（按新的分类）
+    findings = {}
+    for category in MALICIOUS_PATTERNS.keys():
+        findings[category] = []
     
     risky_files = set()
     total_issues = 0
+    analyzed_count = 0
     
-    # 遍历所有文件进行检测
-    for file_info in files_info:
+    # 遍历所有文件进行检测（带进度显示）
+    print("\n正在逐个检测文件内容...")
+    for i, file_info in enumerate(files_info, 1):
         file_path = file_info['path']
         content = file_info['content']
+        
+        # 每100个文件显示一次进度
+        if i % 100 == 0 or i == len(files_info):
+            percent = i * 100 // len(files_info)
+            print(f"进度: {i}/{len(files_info)} ({percent}%) - 当前: {file_path[:50]}...")
+        
+        analyzed_count += 1
+        file_has_issues = False
         
         # 对每个文件检测所有恶意模式
         for category, patterns in MALICIOUS_PATTERNS.items():
             for pattern in patterns:
                 try:
-                    matches = re.findall(pattern, content, re.IGNORECASE)
+                    matches = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
                     if matches:
                         finding = {
                             'file': file_path,
                             'pattern': pattern,
                             'matches': len(matches),
-                            'samples': matches[:3]  # 只保留前3个样本
+                            'samples': [str(m)[:50] for m in matches[:3]]  # 只保留前3个样本，限制长度
                         }
                         findings[category].append(finding)
                         risky_files.add(file_path)
                         total_issues += len(matches)
-                except:
+                        file_has_issues = True
+                except Exception as e:
+                    # 正则表达式错误，继续下一个
                     pass
+        
+        # 显示发现问题的文件（实时反馈）
+        if file_has_issues and i % 50 == 0:
+            print(f"   ⚠️  发现风险: {file_path}")
+    
+    print(f"\n✅ 分析完成: {analyzed_count}/{len(files_info)} 个文件")
     
     # 打印详细发现
     print("\n" + "=" * 60)
-    print("检测结果详情")
+    print("🔎 检测结果详情")
     print("=" * 60)
     
     for category, items in findings.items():
         if items:
-            print(f"\n⚠️  [{category.upper()}] 发现 {len(items)} 处可疑代码:")
-            for item in items[:5]:  # 只显示前5个
+            category_emoji = {
+                'backdoor_critical': '🚨',
+                'command_execution': '🔧',
+                'remote_connection': '🌐',
+                'obfuscation_critical': '🔒',
+                'tracking_ads': '📊',
+                'data_leak': '🔐',
+                'suspicious_domain': '🌍',
+                'file_transfer': '📤',
+                'sql_injection_risk': '🗄️',
+                'privilege_escalation': '🔓',
+                'dangerous_functions': '💀'
+            }
+            emoji = category_emoji.get(category, '⚠️')
+            print(f"\n{emoji} [{category.upper()}] 发现 {len(items)} 处可疑代码:")
+            for item in items[:10]:  # 显示前10个
                 print(f"   - {item['file']}: {item['matches']} 处匹配")
+            if len(items) > 10:
+                print(f"   ... 还有 {len(items) - 10} 个文件")
     
-    # 计算安全评分（优化：考虑管理面板的正常功能）
+    # 计算安全评分（超严格模式）
+    print("\n" + "=" * 60)
+    print("📐 计算安全评分")
+    print("=" * 60)
+    
     base_score = 100
-    
-    # 扣分规则（优化版 - 区分严重和正常功能）
-    # 管理面板本身需要执行系统命令、操作文件等功能，这些不是安全问题
-    # 只针对真正的恶意特征扣分
-    
-    backdoor_count = len(findings.get('backdoor', []))
-    remote_count = len(findings.get('remote_connection', []))
-    obfuscation_count = len(findings.get('obfuscation', []))
-    tracking_count = len(findings.get('tracking', []))
-    
-    # 只针对异常情况扣分
     deductions = 0
+    risk_details = []
     
-    # 后门特征：少量是正常的，过多才扣分
-    if backdoor_count > 200:
-        deductions += 20
-    elif backdoor_count > 100:
-        deductions += 10
+    # 获取各类别数量
+    backdoor_critical = len(findings.get('backdoor_critical', []))
+    command_execution = len(findings.get('command_execution', []))
+    remote_connection = len(findings.get('remote_connection', []))
+    obfuscation_critical = len(findings.get('obfuscation_critical', []))
+    tracking_ads = len(findings.get('tracking_ads', []))
+    data_leak = len(findings.get('data_leak', []))
+    suspicious_domain = len(findings.get('suspicious_domain', []))
+    file_transfer = len(findings.get('file_transfer', []))
+    sql_injection_risk = len(findings.get('sql_injection_risk', []))
+    privilege_escalation = len(findings.get('privilege_escalation', []))
+    dangerous_functions = len(findings.get('dangerous_functions', []))
     
-    # 远程连接：少量正常
-    if remote_count > 10:
-        deductions += 15
-    elif remote_count > 5:
-        deductions += 5
+    # 严格扣分规则
+    # 1. 高危后门特征（eval($var), assert($var)等）
+    if backdoor_critical > 0:
+        deduct = min(backdoor_critical * 2, 30)
+        deductions += deduct
+        risk_details.append(f"🚨 高危后门特征: {backdoor_critical}处 (-{deduct}分)")
     
-    # 代码混淆：少量正常（用于加密配置）
-    if obfuscation_count > 50:
-        deductions += 20
-    elif obfuscation_count > 20:
-        deductions += 10
+    # 2. 代码混淆（base64长字符串等）
+    if obfuscation_critical > 0:
+        deduct = min(obfuscation_critical * 2, 25)
+        deductions += deduct
+        risk_details.append(f"🔒 代码混淆: {obfuscation_critical}处 (-{deduct}分)")
     
-    # 广告统计：任何量都要扣分（这是主要问题）
-    if tracking_count > 50:
-        deductions += 25
-    elif tracking_count > 20:
-        deductions += 15
-    elif tracking_count > 0:
-        deductions += 5
+    # 3. 广告/统计追踪（最主要的去除目标）
+    if tracking_ads > 50:
+        deduct = 25
+        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
+        deductions += deduct
+    elif tracking_ads > 20:
+        deduct = 15
+        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
+        deductions += deduct
+    elif tracking_ads > 0:
+        deduct = 5
+        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
+        deductions += deduct
     
+    # 4. 敏感数据泄露
+    if data_leak > 0:
+        deduct = min(data_leak * 5, 20)
+        deductions += deduct
+        risk_details.append(f"🔐 数据泄露风险: {data_leak}处 (-{deduct}分)")
+    
+    # 5. SQL注入风险
+    if sql_injection_risk > 5:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"🗄️ SQL注入风险: {sql_injection_risk}处 (-{deduct}分)")
+    
+    # 6. 可疑域名
+    if suspicious_domain > 20:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"🌍 可疑域名: {suspicious_domain}处 (-{deduct}分)")
+    
+    # 7. 权限提升
+    if privilege_escalation > 10:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"🔓 权限提升: {privilege_escalation}处 (-{deduct}分)")
+    
+    # 8. 危险函数
+    if dangerous_functions > 10:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
+    
+    # 注意：命令执行、远程连接、文件传输是管理面板的正常功能
+    # 只在数量异常时才扣分
+    if command_execution > 300:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"🔧 命令执行过多: {command_execution}处 (-{deduct}分)")
+    
+    if remote_connection > 20:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"🌐 远程连接过多: {remote_connection}处 (-{deduct}分)")
+    
+    # 最终评分
     security_score = max(0, base_score - deductions)
     
-    # 判断是否安全（降低阈值到80，因为管理面板本身就会有一些风险特征）
+    # 显示扣分详情
+    if risk_details:
+        print("\n扣分详情:")
+        for detail in risk_details:
+            print(f"  {detail}")
+    
+    # 判断是否安全
     is_safe = security_score >= 80
     
     # 生成建议
     recommendations = []
     files_to_remove = []
     
-    if findings['backdoor']:
-        recommendations.append("发现后门特征，强烈建议人工审查")
-        files_to_remove.extend([f['file'] for f in findings['backdoor']])
+    # 高危问题建议
+    if backdoor_critical > 0:
+        recommendations.append(f"🚨 发现{backdoor_critical}处高危后门特征（eval/assert动态执行），强烈建议人工深度审查")
+        files_to_remove.extend([f['file'] for f in findings.get('backdoor_critical', [])])
     
-    if findings['tracking']:
-        recommendations.append("发现广告/统计代码，建议移除")
-        files_to_remove.extend([f['file'] for f in findings['tracking']])
+    if obfuscation_critical > 0:
+        recommendations.append(f"🔒 发现{obfuscation_critical}处代码混淆（Base64/gzinflate），可能隐藏恶意代码")
+        files_to_remove.extend([f['file'] for f in findings.get('obfuscation_critical', [])])
     
-    if findings['obfuscation']:
-        recommendations.append("发现代码混淆，存在安全风险")
+    if data_leak > 0:
+        recommendations.append(f"🔐 发现{data_leak}处敏感数据泄露风险（密码/Token传输），需仔细检查")
     
-    if findings['remote_connection']:
-        recommendations.append("发现远程连接功能，需谨慎使用")
+    if tracking_ads > 0:
+        recommendations.append(f"📊 发现{tracking_ads}处广告/统计代码（bt.cn/api等），建议移除")
+        files_to_remove.extend([f['file'] for f in findings.get('tracking_ads', [])])
+    
+    if sql_injection_risk > 0:
+        recommendations.append(f"🗄️ 发现{sql_injection_risk}处SQL注入风险（$_GET/$_POST直接拼接），需修复")
+    
+    if privilege_escalation > 0:
+        recommendations.append(f"🔓 发现{privilege_escalation}处权限提升操作（chmod 777/sudo），需谨慎")
+    
+    if dangerous_functions > 0:
+        recommendations.append(f"💀 发现{dangerous_functions}处危险函数（unserialize/extract），存在安全隐患")
+    
+    # 正常功能提示
+    if command_execution > 0:
+        recommendations.append(f"ℹ️ 检测到{command_execution}处命令执行（管理面板正常功能）")
+    
+    if remote_connection > 0:
+        recommendations.append(f"ℹ️ 检测到{remote_connection}处远程连接（管理面板正常功能）")
     
     # 生成总结
     if security_score >= 95:
-        summary = "代码质量良好，未发现严重安全问题"
+        summary = "✅ 代码质量优秀，未发现严重安全问题，可以安全使用"
     elif security_score >= 80:
-        summary = "存在少量可疑代码，建议人工审查"
+        summary = "⚠️ 存在少量可疑代码，建议进行人工审查后使用"
     elif security_score >= 60:
-        summary = "存在多处安全风险，需要仔细审查"
+        summary = "🔴 存在多处安全风险，需要仔细审查和清理后才能使用"
     else:
-        summary = "发现大量安全问题，不建议直接使用"
+        summary = "🚨 发现大量严重安全问题，强烈不建议使用"
     
+    # 最终输出
     print(f"\n" + "=" * 60)
-    print(f"📊 安全评分: {security_score}/100")
-    print(f"🔍 风险文件数: {len(risky_files)}/{len(files_info)}")
-    print(f"⚠️  问题总数: {total_issues}")
-    print(f"💡 总结: {summary}")
+    print(f"📊 最终安全评分")
+    print("=" * 60)
+    print(f"\n🎯 综合评分: {security_score}/100")
+    print(f"📁 检测文件数: {len(files_info)}")
+    print(f"⚠️  风险文件数: {len(risky_files)}")
+    print(f"🔍 问题总数: {total_issues}")
+    print(f"\n💡 总结: {summary}")
+    
+    # 分类统计
+    print(f"\n" + "=" * 60)
+    print("📋 分类统计")
+    print("=" * 60)
+    print(f"  🚨 高危后门: {backdoor_critical}处")
+    print(f"  🔒 代码混淆: {obfuscation_critical}处")
+    print(f"  📊 广告统计: {tracking_ads}处")
+    print(f"  🔐 数据泄露: {data_leak}处")
+    print(f"  🗄️ SQL注入: {sql_injection_risk}处")
+    print(f"  🔓 权限提升: {privilege_escalation}处")
+    print(f"  💀 危险函数: {dangerous_functions}处")
+    print(f"  🔧 命令执行: {command_execution}处 (管理面板正常)")
+    print(f"  🌐 远程连接: {remote_connection}处 (管理面板正常)")
+    print(f"  📤 文件传输: {file_transfer}处 (管理面板正常)")
     print("=" * 60)
     
     return {
@@ -322,10 +535,24 @@ def static_code_analysis(files_info, version):
         'is_safe': is_safe,
         'total_issues': total_issues,
         'risky_files': len(risky_files),
+        'analyzed_files': len(files_info),
         'findings': findings,
         'recommendations': recommendations,
         'files_to_remove': list(set(files_to_remove)),
-        'summary': summary
+        'summary': summary,
+        'category_stats': {
+            'backdoor_critical': backdoor_critical,
+            'command_execution': command_execution,
+            'remote_connection': remote_connection,
+            'obfuscation_critical': obfuscation_critical,
+            'tracking_ads': tracking_ads,
+            'data_leak': data_leak,
+            'suspicious_domain': suspicious_domain,
+            'file_transfer': file_transfer,
+            'sql_injection_risk': sql_injection_risk,
+            'privilege_escalation': privilege_escalation,
+            'dangerous_functions': dangerous_functions,
+        }
     }
 
 def main():
