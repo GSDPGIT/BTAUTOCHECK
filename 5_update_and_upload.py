@@ -156,7 +156,7 @@ def main():
     result_path = os.path.join(download_dir, latest_result)
     
     with open(result_path, 'r', encoding='utf-8') as f:
-    result_data = json.load(f)
+        result_data = json.load(f)
 
     version = result_data['version']
     md5 = result_data['md5']
