@@ -52,7 +52,24 @@ vim config.json
 
 **获取Gemini API Key**: https://aistudio.google.com/app/apikey
 
-### 4. 运行
+### 4. 测试运行（推荐首次使用）
+
+```bash
+# Linux服务器
+bash test_full_flow.sh
+
+# Windows
+test_full_flow.bat
+```
+
+**测试脚本会**：
+- ✅ 自动备份当前配置
+- ✅ 模拟发现新版本11.2.0的完整流程
+- ✅ 运行所有检测步骤（版本检测→下载→AI分析→生成报告）
+- ✅ 自动恢复原始配置
+- ✅ 显示生成的文件列表和测试结果
+
+### 5. 正式运行
 
 ```bash
 # 方式1: 一键运行全流程
@@ -61,7 +78,7 @@ python auto_update.py
 # 方式2: Windows双击运行
 run_auto_update.bat
 
-# 方式3: 分步运行
+# 方式3: 分步运行（调试用）
 python 1_check_new_version.py
 python 2_download_and_check.py
 python 3_ai_security_check.py
@@ -82,6 +99,8 @@ BTAUTOCHECK/
 ├── 4_generate_report.py        # 报告生成
 ├── 5_update_and_upload.py      # 更新上传
 ├── test_gemini.py              # API测试工具
+├── test_full_flow.sh           # 🧪 完整流程测试（Linux）
+├── test_full_flow.bat          # 🧪 完整流程测试（Windows）
 ├── config.json                 # 配置文件（需自己创建）
 ├── config.example.json         # 配置示例
 ├── requirements.txt            # Python依赖
