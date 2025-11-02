@@ -21,7 +21,14 @@ def get_official_version():
     try:
         url = config['bt_api_url']
         response = requests.get(url, timeout=10)
-        data = response.json()
+        
+        # 先尝试解析JSON
+        try:
+            data = response.json()
+        except:
+            # 如果不是JSON，可能是纯文本格式的版本号
+            version_text = response.text.strip()
+            data = version_text
         
         if isinstance(data, dict):
             version = data.get('version', '')

@@ -8,6 +8,7 @@ BT-Panel 下载与安全检测脚本
 import requests
 import json
 import os
+import sys
 import hashlib
 import zipfile
 import subprocess
