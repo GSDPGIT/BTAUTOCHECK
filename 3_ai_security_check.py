@@ -10,6 +10,7 @@ import json
 import os
 import zipfile
 import sys
+import hashlib
 from datetime import datetime
 
 # 加载配置
@@ -21,6 +22,55 @@ with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
 
 GEMINI_API_KEY = config['gemini_api_key']
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+
+def calculate_md5(file_path):
+    """计算文件MD5"""
+    md5_hash = hashlib.md5()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            md5_hash.update(chunk)
+    return md5_hash.hexdigest()
+
+def basic_security_check(zip_path):
+    """基础安全检查"""
+    checks = {
+        'file_exists': False,
+        'is_valid_zip': False,
+        'file_count': 0,
+        'suspicious_files': [],
+        'size_mb': 0
+    }
+    
+    # 1. 文件存在性
+    if os.path.exists(zip_path):
+        checks['file_exists'] = True
+        checks['size_mb'] = round(os.path.getsize(zip_path) / 1024 / 1024, 2)
+    else:
+        return checks
+    
+    # 2. ZIP完整性
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            file_list = zip_ref.namelist()
+            checks['is_valid_zip'] = True
+            checks['file_count'] = len(file_list)
+            
+            # 3. 检查可疑文件
+            suspicious_patterns = [
+                '.exe', '.dll', '.bat', '.cmd', '.vbs', 
+                'backdoor', 'trojan', 'malware', 'hack'
+            ]
+            
+            for file in file_list:
+                file_lower = file.lower()
+                for pattern in suspicious_patterns:
+                    if pattern in file_lower:
+                        checks['suspicious_files'].append(file)
+                        break
+    except:
+        pass
+    
+    return checks
 
 def extract_and_analyze_files(zip_path, extract_dir):
     """解压并分析文件"""
