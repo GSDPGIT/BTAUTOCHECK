@@ -37,14 +37,19 @@ def update_version_json(version, md5, release_date):
         "msg_en": f"BT Panel {version} Clean Edition - Self-hosted on GitHub"
     }
     
-    # 保存到security_analysis目录
+    # 保存到security_analysis目录（如果不存在则保存到downloads目录）
     target_dir = os.path.join(os.path.dirname(__file__), '..', 'security_analysis')
+    if not os.path.exists(target_dir):
+        # 测试环境：保存到downloads目录
+        target_dir = os.path.join(os.path.dirname(__file__), 'downloads')
+        os.makedirs(target_dir, exist_ok=True)
+    
     version_file = os.path.join(target_dir, 'version.json')
     
     with open(version_file, 'w', encoding='utf-8') as f:
         json.dump(version_json, f, indent=4, ensure_ascii=False)
     
-    print(f"✅ version.json 已更新")
+    print(f"✅ version.json 已更新: {version_file}")
     return version_file
 
 def copy_files_to_repo(version):
@@ -53,6 +58,12 @@ def copy_files_to_repo(version):
     
     download_dir = os.path.join(os.path.dirname(__file__), 'downloads')
     target_dir = os.path.join(os.path.dirname(__file__), '..', 'security_analysis')
+    
+    # 如果目标目录不存在，跳过复制（测试环境）
+    if not os.path.exists(target_dir):
+        print(f"⚠️  目标目录不存在，跳过复制: {target_dir}")
+        print(f"   文件已保存在: {download_dir}")
+        return True
     
     # 复制升级包
     source_file = os.path.join(download_dir, f'LinuxPanel-{version}.zip')
@@ -78,6 +89,13 @@ def git_commit_and_push(version):
     print("=" * 60)
     
     target_dir = os.path.join(os.path.dirname(__file__), '..', 'security_analysis')
+    
+    # 如果目标目录不存在，跳过Git操作（测试环境）
+    if not os.path.exists(target_dir):
+        print(f"⚠️  目标目录不存在，跳过Git操作: {target_dir}")
+        print(f"   这是正常的测试环境行为")
+        return True
+    
     os.chdir(target_dir)
     
     try:
