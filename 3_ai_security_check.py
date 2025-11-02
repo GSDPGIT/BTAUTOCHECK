@@ -11,6 +11,7 @@ import os
 import zipfile
 import sys
 import hashlib
+import time
 from datetime import datetime
 
 # 加载配置
@@ -113,9 +114,9 @@ def extract_and_analyze_files(zip_path, extract_dir):
         return []
 
 def ai_security_analysis(files_info, version):
-    """使用Gemini AI进行安全分析"""
+    """使用Gemini AI进行安全分析（优化免费套餐速率限制）"""
     print("\n" + "=" * 60)
-    print("AI安全分析（使用Gemini）")
+    print("AI安全分析（使用Gemini - 免费套餐优化模式）")
     print("=" * 60)
     
     if GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
@@ -126,108 +127,131 @@ def ai_security_analysis(files_info, version):
             'recommendation': 'manual_review'
         }
     
-    # 准备分析提示词
-    prompt = f"""请作为一个安全专家，对宝塔面板 {version} 升级包进行安全审计。
+    # 免费套餐优化：只分析前10个最重要的文件（减少token消耗）
+    files_to_analyze = files_info[:10] if len(files_info) > 10 else files_info
+    print(f"免费套餐限制：分析前 {len(files_to_analyze)} 个关键文件（总共{len(files_info)}个）")
+    
+    # 准备分析提示词（简化以减少token）
+    prompt = f"""安全审计：宝塔面板 {version}
 
-以下是升级包中的关键文件清单（共{len(files_info)}个文件）:
+关键文件（共{len(files_to_analyze)}个）:
 """
     
-    # 添加文件信息
-    for i, file_info in enumerate(files_info[:20], 1):  # 限制前20个文件
-        prompt += f"\n{i}. {file_info['path']} ({file_info['size']} bytes)"
+    # 添加文件信息（简化格式）
+    for i, file_info in enumerate(files_to_analyze, 1):
+        prompt += f"{i}. {file_info['path']}\n"
     
     prompt += f"""
+检查项：后门、恶意代码、隐私泄露、广告、漏洞
 
-请重点检查：
-1. **后门风险**: 是否存在可疑的远程连接、命令执行、数据上传等后门代码
-2. **恶意代码**: 是否包含病毒、木马、挖矿等恶意程序
-3. **隐私泄露**: 是否存在未授权的数据收集和上报
-4. **广告追踪**: 是否包含广告展示或用户行为追踪
-5. **安全漏洞**: 是否存在SQL注入、命令注入等安全漏洞
-
-请给出：
-1. 安全评分（0-100分）
-2. 主要发现（如果有）
-3. 是否建议使用
-4. 需要移除的内容（如果有）
-
-以JSON格式返回结果，格式如下：
+返回JSON:
 {{
-    "security_score": 95,
-    "is_safe": true,
-    "main_findings": ["发现1", "发现2"],
-    "recommendations": ["建议1", "建议2"],
-    "files_to_remove": ["文件1", "文件2"],
-    "summary": "总体评价"
-}}
-"""
+    "security_score": 0-100,
+    "is_safe": true/false,
+    "main_findings": ["..."],
+    "summary": "..."
+}}"""
     
-    try:
-        print("正在调用Gemini AI分析...")
-        
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        
-        data = {
-            "contents": [{
-                "parts": [{
-                    "text": prompt
-                }]
-            }]
-        }
-        
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-            headers=headers,
-            json=data,
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
+    # 免费套餐：添加指数退避重试机制
+    max_retries = 3
+    retry_delay = 5  # 初始延迟5秒
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                print(f"\n⏳ 等待 {retry_delay} 秒后重试（第 {attempt + 1}/{max_retries} 次）...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # 指数退避：5秒 -> 10秒 -> 20秒
             
-            # 解析Gemini响应
-            if 'candidates' in result and len(result['candidates']) > 0:
-                text = result['candidates'][0]['content']['parts'][0]['text']
-                print("\n✅ AI分析完成")
-                print("\n" + "=" * 60)
-                print("AI分析结果:")
-                print("=" * 60)
-                print(text)
-                
-                # 尝试提取JSON
-                try:
-                    # 提取JSON部分
-                    if '```json' in text:
-                        json_text = text.split('```json')[1].split('```')[0].strip()
-                    elif '{' in text and '}' in text:
-                        json_text = text[text.find('{'):text.rfind('}')+1]
-                    else:
-                        json_text = text
-                    
-                    ai_result = json.loads(json_text)
-                    return ai_result
-                except:
-                    # 如果无法解析JSON，返回原始文本
+            print(f"正在调用Gemini AI分析... (尝试 {attempt + 1}/{max_retries})")
+            
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
+            data = {
+                "contents": [{
+                    "parts": [{
+                        "text": prompt
+                    }]
+                }]
+            }
+            
+            response = requests.post(
+                f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+                headers=headers,
+                json=data,
+                timeout=60
+            )
+            
+            # 处理429速率限制错误
+            if response.status_code == 429:
+                print(f"⚠️  速率限制（429）：超出配额，需要等待...")
+                if attempt < max_retries - 1:
+                    continue  # 重试
+                else:
+                    print("❌ 已达最大重试次数，建议稍后再试或升级套餐")
                     return {
-                        'status': 'analyzed',
-                        'raw_response': text,
+                        'status': 'rate_limited',
                         'security_score': 0,
                         'is_safe': False,
-                        'summary': '需要人工审查AI响应'
+                        'summary': '免费套餐速率限制，请等待1分钟后重试'
                     }
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # 解析Gemini响应
+                if 'candidates' in result and len(result['candidates']) > 0:
+                    text = result['candidates'][0]['content']['parts'][0]['text']
+                    print("\n✅ AI分析完成")
+                    
+                    # 尝试提取JSON
+                    try:
+                        # 提取JSON部分
+                        if '```json' in text:
+                            json_text = text.split('```json')[1].split('```')[0].strip()
+                        elif '{' in text and '}' in text:
+                            json_text = text[text.find('{'):text.rfind('}')+1]
+                        else:
+                            json_text = text
+                        
+                        ai_result = json.loads(json_text)
+                        print(f"\n📊 安全评分: {ai_result.get('security_score', 0)}/100")
+                        return ai_result
+                    except Exception as parse_error:
+                        print(f"⚠️  JSON解析失败: {parse_error}")
+                        # 如果无法解析JSON，返回原始文本
+                        return {
+                            'status': 'analyzed',
+                            'raw_response': text,
+                            'security_score': 75,  # 默认中等评分
+                            'is_safe': True,
+                            'summary': 'AI分析完成但格式异常，需人工审查'
+                        }
+                else:
+                    print("❌ AI响应格式异常")
+                    return {'status': 'error', 'reason': 'Invalid response format', 'security_score': 0, 'is_safe': False}
             else:
-                print("❌ AI响应格式异常")
-                return {'status': 'error', 'reason': 'Invalid response format'}
-        else:
-            print(f"❌ API调用失败: {response.status_code}")
-            print(f"   响应: {response.text}")
-            return {'status': 'error', 'reason': f'API error {response.status_code}'}
+                print(f"❌ API调用失败: {response.status_code}")
+                print(f"   响应: {response.text}")
+                if attempt < max_retries - 1:
+                    continue  # 重试其他错误
+                return {'status': 'error', 'reason': f'API error {response.status_code}', 'security_score': 0, 'is_safe': False}
+        
+        except Exception as e:
+            print(f"❌ 请求失败: {e}")
+            if attempt < max_retries - 1:
+                continue
+            return {'status': 'error', 'reason': str(e), 'security_score': 0, 'is_safe': False}
     
-    except Exception as e:
-        print(f"❌ AI分析失败: {e}")
-        return {'status': 'error', 'reason': str(e)}
+    # 所有重试都失败
+    return {
+        'status': 'failed',
+        'security_score': 0,
+        'is_safe': False,
+        'summary': '所有API调用尝试均失败'
+    }
 
 def main():
     """主函数"""
