@@ -22,13 +22,30 @@ def get_official_version():
         url = config['bt_api_url']
         response = requests.get(url, timeout=10)
         
+        # 检查响应状态
+        if response.status_code != 200:
+            print(f"⚠️  API响应异常: HTTP {response.status_code}")
+            return None
+        
+        # 检查是否返回了HTML（404页面）
+        content_type = response.headers.get('Content-Type', '')
+        if 'html' in content_type.lower() or response.text.strip().startswith('<'):
+            print(f"⚠️  API返回了HTML页面，可能是404或其他错误")
+            print(f"   请检查API地址: {url}")
+            return None
+        
         # 先尝试解析JSON
         try:
             data = response.json()
         except:
             # 如果不是JSON，可能是纯文本格式的版本号
             version_text = response.text.strip()
-            data = version_text
+            # 验证版本号格式（应该是数字.数字.数字）
+            if version_text and len(version_text) < 20 and '.' in version_text:
+                data = version_text
+            else:
+                print(f"⚠️  无法识别的响应格式")
+                return None
         
         if isinstance(data, dict):
             version = data.get('version', '')
