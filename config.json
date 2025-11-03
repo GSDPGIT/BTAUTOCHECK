@@ -14,11 +14,11 @@
     "auto_rollback_on_failure": true,
     "keep_backups": 5,
     "ai_providers": {
-        "enabled": true,
+        "enabled": false,
         "primary_provider": "gemini",
         "fallback_enabled": true,
         "gemini": {
-            "enabled": true,
+            "enabled": false,
             "api_key": "YOUR_GEMINI_API_KEY_HERE",
             "model": "gemini-2.0-flash-exp",
             "api_url": "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
