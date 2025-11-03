@@ -1,10 +1,104 @@
 {% extends "base.html" %}
 {% block title %}查看报告 - BTAUTOCHECK{% endblock %}
+{% block head %}
+<!-- Markdown 渲染支持 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.2.0/github-markdown-light.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<style>
+    .markdown-body {
+        box-sizing: border-box;
+        min-width: 200px;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 45px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .markdown-body pre {
+        background-color: #f6f8fa;
+        border-radius: 6px;
+        padding: 16px;
+    }
+    .markdown-body table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1em 0;
+    }
+    .markdown-body table th,
+    .markdown-body table td {
+        border: 1px solid #d0d7de;
+        padding: 6px 13px;
+    }
+    .markdown-body table tr:nth-child(2n) {
+        background-color: #f6f8fa;
+    }
+    .view-controls {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    .view-toggle {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .raw-content {
+        display: none;
+    }
+    .raw-content.active {
+        display: block;
+    }
+    .rendered-content {
+        display: block;
+    }
+    .rendered-content.hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h2 style="margin-bottom: 2rem;">📄 {{ filename }}</h2>
-<div class="card">
+<h2 style="margin-bottom: 1rem;">📄 {{ filename }}</h2>
+
+<div class="view-controls">
+    <a href="{{ url_for('report_list') }}" class="btn btn-secondary">← 返回列表</a>
+    <div class="view-toggle">
+        <button class="btn btn-primary" onclick="showRendered()">📊 渲染视图</button>
+        <button class="btn btn-secondary" onclick="showRaw()">📝 原始文本</button>
+    </div>
+</div>
+
+<!-- 渲染后的Markdown -->
+<div id="rendered" class="card rendered-content">
+    <div id="markdown-content" class="markdown-body"></div>
+</div>
+
+<!-- 原始文本 -->
+<div id="raw" class="card raw-content">
     <div class="log-viewer" style="max-height: none;"><pre>{{ content }}</pre></div>
 </div>
-<a href="{{ url_for('report_list') }}" class="btn btn-secondary">← 返回列表</a>
+
+<script>
+// Markdown内容
+const markdownContent = {{ content|tojson }};
+
+// 渲染Markdown
+document.addEventListener('DOMContentLoaded', function() {
+    const contentDiv = document.getElementById('markdown-content');
+    contentDiv.innerHTML = marked.parse(markdownContent);
+});
+
+// 切换视图
+function showRendered() {
+    document.getElementById('rendered').classList.remove('hidden');
+    document.getElementById('raw').classList.remove('active');
+}
+
+function showRaw() {
+    document.getElementById('rendered').classList.add('hidden');
+    document.getElementById('raw').classList.add('active');
+}
+</script>
 {% endblock %}
 
