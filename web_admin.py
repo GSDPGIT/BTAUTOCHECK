@@ -305,6 +305,44 @@ def test_notification():
     except Exception as e:
         return jsonify({'success': False, 'message': f'发送失败: {str(e)}'})
 
+@app.route('/ai/test', methods=['POST'])
+@login_required
+def test_ai():
+    """测试AI连接"""
+    try:
+        from ai_analyzer import AIAnalyzer
+        
+        analyzer = AIAnalyzer()
+        
+        # 测试代码
+        test_code = """
+def process_user_input(data):
+    # 这是一个测试函数
+    result = eval(data)
+    return result
+"""
+        
+        # 调用AI分析
+        result = analyzer.analyze_code(test_code, "test.py")
+        
+        if result:
+            provider = result.get('ai_provider', 'unknown')
+            score = result.get('security_score', 0)
+            findings = len(result.get('findings', []))
+            
+            message = f"✅ AI测试成功！\n\n"
+            message += f"使用模型: {provider.upper()}\n"
+            message += f"安全评分: {score}/100\n"
+            message += f"发现问题: {findings}个\n\n"
+            message += f"AI连接正常，可以使用！"
+            
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': 'AI未返回结果，请检查配置和网络连接'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'AI测试失败: {str(e)}'})
+
 @app.route('/api/stats')
 @login_required
 def api_stats():

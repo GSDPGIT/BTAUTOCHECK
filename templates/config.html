@@ -286,7 +286,21 @@ function testAI() {
         return;
     }
     
-    alert('🧪 AI测试功能开发中...\n\n请使用命令行测试：\npython3 ai_analyzer.py test');
+    // 显示加载中
+    const originalText = event.target.textContent;
+    event.target.textContent = '测试中...';
+    event.target.disabled = true;
+    
+    ajaxPost('{{ url_for("test_ai") }}', {}, function(data) {
+        event.target.textContent = originalText;
+        event.target.disabled = false;
+        
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    });
 }
 </script>
 {% endblock %}
