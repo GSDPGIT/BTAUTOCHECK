@@ -16,9 +16,19 @@ from datetime import datetime
 from secure_config import SecureConfig
 from backup_manager import BackupManager
 from notification import NotificationManager
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import atexit
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+# 初始化调度器
+scheduler = BackgroundScheduler(daemon=True)
+scheduler.start()
+
+# 确保程序退出时关闭调度器
+atexit.register(lambda: scheduler.shutdown())
 
 # 配置
 ADMIN_USERNAME = 'admin'
@@ -437,10 +447,144 @@ def get_last_check_time():
         return logs[0]['mtime']
     return 'Never'
 
+# ========================================
+# 自动检测调度器功能
+# ========================================
+
+def run_auto_check():
+    """执行自动检测任务"""
+    try:
+        print(f"\n{'='*70}")
+        print(f"🔍 定时自动检测开始")
+        print(f"⏰ 触发时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{'='*70}\n")
+        
+        # 运行auto_update.py
+        result = subprocess.run(
+            ['python3', 'auto_update.py'],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(__file__) or '.'
+        )
+        
+        print(f"\n{'='*70}")
+        print(f"✅ 定时自动检测完成")
+        print(f"⏰ 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"📊 退出码: {result.returncode}")
+        print(f"{'='*70}\n")
+        
+        return result.returncode == 0
+    except Exception as e:
+        print(f"❌ 定时检测失败: {e}")
+        return False
+
+def init_scheduler():
+    """初始化调度器"""
+    try:
+        secure_config = SecureConfig()
+        config = secure_config.load_config()
+        
+        scheduler_config = config.get('scheduler', {})
+        enabled = scheduler_config.get('enabled', True)
+        interval_hours = scheduler_config.get('interval_hours', 1)
+        
+        # 清除所有现有任务
+        scheduler.remove_all_jobs()
+        
+        if enabled and interval_hours > 0:
+            # 添加定时任务
+            scheduler.add_job(
+                func=run_auto_check,
+                trigger=IntervalTrigger(hours=interval_hours),
+                id='auto_check_job',
+                name='自动版本检测任务',
+                replace_existing=True
+            )
+            print(f"✅ 自动检测调度器已启动")
+            print(f"⏰ 检测间隔: {interval_hours} 小时")
+        else:
+            print(f"⚠️  自动检测调度器已禁用")
+            
+    except Exception as e:
+        print(f"❌ 调度器初始化失败: {e}")
+
+@app.route('/scheduler/status')
+@login_required
+def scheduler_status():
+    """获取调度器状态"""
+    try:
+        secure_config = SecureConfig()
+        config = secure_config.load_config()
+        scheduler_config = config.get('scheduler', {})
+        
+        jobs = []
+        for job in scheduler.get_jobs():
+            next_run = job.next_run_time.strftime('%Y-%m-%d %H:%M:%S') if job.next_run_time else 'N/A'
+            jobs.append({
+                'id': job.id,
+                'name': job.name,
+                'next_run': next_run,
+                'trigger': str(job.trigger)
+            })
+        
+        return jsonify({
+            'success': True,
+            'enabled': scheduler_config.get('enabled', True),
+            'interval_hours': scheduler_config.get('interval_hours', 1),
+            'jobs': jobs,
+            'scheduler_running': scheduler.running
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/scheduler/toggle', methods=['POST'])
+@login_required
+def scheduler_toggle():
+    """启用/禁用调度器"""
+    try:
+        enabled = request.json.get('enabled', True)
+        interval_hours = request.json.get('interval_hours', 1)
+        
+        secure_config = SecureConfig()
+        config = secure_config.load_config()
+        
+        if 'scheduler' not in config:
+            config['scheduler'] = {}
+        
+        config['scheduler']['enabled'] = enabled
+        config['scheduler']['interval_hours'] = interval_hours
+        
+        secure_config.save_config(config)
+        
+        # 重新初始化调度器
+        init_scheduler()
+        
+        return jsonify({'success': True, 'message': '调度器配置已更新'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/scheduler/run_now', methods=['POST'])
+@login_required
+def scheduler_run_now():
+    """立即执行检测"""
+    try:
+        # 在后台线程中执行
+        import threading
+        thread = threading.Thread(target=run_auto_check)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'success': True, 'message': '检测任务已启动，请稍后查看报告和日志'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 if __name__ == '__main__':
     # 确保必要的目录存在
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static', exist_ok=True)
+    
+    # 初始化调度器
+    init_scheduler()
     
     # 启动Web服务器
     print("=" * 70)

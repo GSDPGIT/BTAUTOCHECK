@@ -9,6 +9,11 @@
     "notification_enabled": true,
     "auto_upload": false,
     "security_threshold": 80,
+    "scheduler": {
+        "enabled": true,
+        "interval_hours": 1,
+        "comment": "自动检测调度器，默认每小时检测一次。设为0禁用自动检测。"
+    },
     "backup_enabled": true,
     "backup_before_upgrade": true,
     "auto_rollback_on_failure": true,

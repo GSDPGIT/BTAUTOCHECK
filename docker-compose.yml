@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  btautocheck:
+    build: .
+    container_name: btautocheck
+    image: btautocheck:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      # 配置文件（持久化）
+      - ./config.json:/app/config.json
+      # 下载目录（持久化）
+      - btautocheck-downloads:/app/downloads
+      # 备份目录（持久化）
+      - btautocheck-backups:/app/backups
+      # 日志目录（持久化）
+      - btautocheck-logs:/app/logs
+      # 密码文件（持久化）
+      - btautocheck-admin:/app/.admin_password
+      # 加密密钥（持久化）
+      - btautocheck-key:/app/.config.key
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  btautocheck-downloads:
+    driver: local
+  btautocheck-backups:
+    driver: local
+  btautocheck-logs:
+    driver: local
+  btautocheck-admin:
+    driver: local
+  btautocheck-key:
+    driver: local
+

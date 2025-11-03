@@ -34,11 +34,23 @@
 </div>
 
 <div class="card">
+    <div class="card-header">⏰ 自动检测调度器</div>
+    <div id="scheduler-status" style="padding: 1rem;">
+        <p>加载中...</p>
+    </div>
+    <div style="display: flex; gap: 1rem; padding: 0 1rem 1rem 1rem;">
+        <button onclick="runCheckNow()" class="btn btn-primary">
+            🚀 立即执行检测
+        </button>
+        <button onclick="toggleScheduler()" id="toggleBtn" class="btn btn-secondary">
+            ⏸️ 暂停调度器
+        </button>
+    </div>
+</div>
+
+<div class="card">
     <div class="card-header">快速操作</div>
     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-        <button onclick="runCheck()" class="btn btn-primary">
-            🔍 立即检测新版本
-        </button>
         <button onclick="testNotification()" class="btn btn-success">
             📨 测试通知
         </button>
@@ -93,17 +105,77 @@
 
 {% block extra_js %}
 <script>
-function runCheck() {
+let schedulerEnabled = true;
+let intervalHours = 1;
+
+// 加载调度器状态
+function loadSchedulerStatus() {
+    fetch('{{ url_for("scheduler_status") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                schedulerEnabled = data.enabled;
+                intervalHours = data.interval_hours;
+                
+                let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">';
+                html += '<div>';
+                html += '<strong>状态:</strong> ';
+                html += data.enabled ? '<span style="color: #51cf66;">✓ 已启用</span>' : '<span style="color: #ff6b6b;">✗ 已禁用</span>';
+                html += '</div>';
+                html += '<div><strong>检测间隔:</strong> ' + data.interval_hours + ' 小时</div>';
+                html += '<div><strong>调度器运行:</strong> ' + (data.scheduler_running ? '✓' : '✗') + '</div>';
+                html += '</div>';
+                
+                if (data.jobs && data.jobs.length > 0) {
+                    html += '<div style="margin-top: 1rem;"><strong>下次执行:</strong> ' + data.jobs[0].next_run + '</div>';
+                }
+                
+                document.getElementById('scheduler-status').innerHTML = html;
+                
+                // 更新按钮
+                const toggleBtn = document.getElementById('toggleBtn');
+                if (data.enabled) {
+                    toggleBtn.innerHTML = '⏸️ 暂停调度器';
+                    toggleBtn.className = 'btn btn-warning';
+                } else {
+                    toggleBtn.innerHTML = '▶️ 启动调度器';
+                    toggleBtn.className = 'btn btn-success';
+                }
+            }
+        });
+}
+
+// 立即执行检测
+function runCheckNow() {
     if (!confirm('确定要立即开始检测吗？\n检测过程可能需要几分钟时间。')) {
         return;
     }
     
-    ajaxPost('{{ url_for("run_check") }}', {}, function(data) {
+    ajaxPost('{{ url_for("scheduler_run_now") }}', {}, function(data) {
         if (data.success) {
             alert('✅ ' + data.message);
-            setTimeout(function() {
-                location.reload();
-            }, 2000);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    });
+}
+
+// 启用/禁用调度器
+function toggleScheduler() {
+    const newState = !schedulerEnabled;
+    const action = newState ? '启用' : '禁用';
+    
+    if (!confirm('确定要' + action + '自动检测调度器吗？')) {
+        return;
+    }
+    
+    ajaxPost('{{ url_for("scheduler_toggle") }}', {
+        enabled: newState,
+        interval_hours: intervalHours
+    }, function(data) {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            loadSchedulerStatus();
         } else {
             alert('❌ ' + data.message);
         }
@@ -123,6 +195,13 @@ function testNotification() {
         }
     });
 }
+
+// 页面加载时获取调度器状态
+document.addEventListener('DOMContentLoaded', function() {
+    loadSchedulerStatus();
+    // 每30秒刷新一次状态
+    setInterval(loadSchedulerStatus, 30000);
+});
 </script>
 {% endblock %}
 
