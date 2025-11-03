@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}查看报告 - BTAUTOCHECK{% endblock %}
+{% block content %}
+<h2 style="margin-bottom: 2rem;">📄 {{ filename }}</h2>
+<div class="card">
+    <div class="log-viewer" style="max-height: none;"><pre>{{ content }}</pre></div>
+</div>
+<a href="{{ url_for('report_list') }}" class="btn btn-secondary">← 返回列表</a>
+{% endblock %}
+

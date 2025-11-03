@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板 - BTAUTOCHECK{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 2rem;">📊 仪表板</h2>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">当前版本</div>
+        <div class="stat-value">{{ stats.current_version }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">安全阈值</div>
+        <div class="stat-value">{{ stats.security_threshold }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">备份数量</div>
+        <div class="stat-value">{{ stats.backup_count }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">通知状态</div>
+        <div class="stat-value">
+            {% if stats.notification_enabled %}
+            <span style="color: #51cf66;">✓</span>
+            {% else %}
+            <span style="color: #ff6b6b;">✗</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">快速操作</div>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <button onclick="runCheck()" class="btn btn-primary">
+            🔍 立即检测新版本
+        </button>
+        <button onclick="testNotification()" class="btn btn-success">
+            📨 测试通知
+        </button>
+        <a href="{{ url_for('config_management') }}" class="btn btn-secondary">
+            ⚙️ 配置管理
+        </a>
+        <a href="{{ url_for('backup_list') }}" class="btn btn-secondary">
+            💾 备份管理
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">最近的安全报告</div>
+    {% if reports %}
+    <table>
+        <thead>
+            <tr>
+                <th>文件名</th>
+                <th>大小</th>
+                <th>生成时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.filename }}</td>
+                <td>{{ (report.size / 1024) | round(2) }} KB</td>
+                <td>{{ report.mtime }}</td>
+                <td>
+                    <a href="{{ url_for('report_view', filename=report.filename) }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">查看</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #868e96; text-align: center; padding: 2rem;">暂无报告</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header">最近日志</div>
+    <div class="log-viewer">
+        <pre>{% for log in logs %}{{ log }}
+{% endfor %}</pre>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runCheck() {
+    if (!confirm('确定要立即开始检测吗？\n检测过程可能需要几分钟时间。')) {
+        return;
+    }
+    
+    ajaxPost('{{ url_for("run_check") }}', {}, function(data) {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            setTimeout(function() {
+                location.reload();
+            }, 2000);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    });
+}
+
+function testNotification() {
+    if (!confirm('确定要发送测试通知吗？')) {
+        return;
+    }
+    
+    ajaxPost('{{ url_for("test_notification") }}', {}, function(data) {
+        if (data.success) {
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}
+

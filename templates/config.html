@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}配置管理 - BTAUTOCHECK{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 2rem;">⚙️ 配置管理</h2>
+
+<form id="configForm" method="POST">
+    <div class="card">
+        <div class="card-header">基础配置</div>
+        
+        <div class="form-group">
+            <label>安全评分阈值</label>
+            <input type="number" name="security_threshold" value="{{ config.security_threshold }}" min="0" max="100">
+            <small style="color: #868e96;">低于此分数将发出警告（推荐：80）</small>
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用通知功能</span>
+                <label class="switch">
+                    <input type="checkbox" name="notification_enabled" {% if config.notification_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">备份配置</div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用备份功能</span>
+                <label class="switch">
+                    <input type="checkbox" name="backup_enabled" {% if config.backup_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>升级前自动备份</span>
+                <label class="switch">
+                    <input type="checkbox" name="backup_before_upgrade" {% if config.backup_before_upgrade %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>失败时自动回滚</span>
+                <label class="switch">
+                    <input type="checkbox" name="auto_rollback_on_failure" {% if config.auto_rollback_on_failure %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>保留备份数量</label>
+            <input type="number" name="keep_backups" value="{{ config.keep_backups }}" min="1" max="20">
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">Server酱通知</div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用Server酱</span>
+                <label class="switch">
+                    <input type="checkbox" name="serverchan_enabled" {% if config.notifications.serverchan.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>SendKey</label>
+            <input type="text" name="serverchan_sendkey" value="{{ config.notifications.serverchan.sendkey }}" placeholder="SCT...">
+            <small style="color: #868e96;">从 https://sct.ftqq.com/ 获取</small>
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary">💾 保存配置</button>
+        <button type="button" onclick="testNotification()" class="btn btn-success">📨 测试通知</button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('{{ url_for("config_management") }}', {
+        method: 'POST',
+        body: new URLSearchParams(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ ' + (data.message || '保存失败'));
+        }
+    })
+    .catch(error => {
+        alert('❌ 保存失败: ' + error);
+    });
+});
+
+function testNotification() {
+    ajaxPost('{{ url_for("test_notification") }}', {}, function(data) {
+        if (data.success) {
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}
+

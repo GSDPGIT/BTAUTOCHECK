@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}安全报告 - BTAUTOCHECK{% endblock %}
+{% block content %}
+<h2 style="margin-bottom: 2rem;">📋 安全报告</h2>
+<div class="card">
+    <div class="card-header">报告列表</div>
+    {% if reports %}
+    <table>
+        <thead><tr><th>文件名</th><th>大小</th><th>生成时间</th><th>操作</th></tr></thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.filename }}</td>
+                <td>{{ (report.size / 1024) | round(2) }} KB</td>
+                <td>{{ report.mtime }}</td>
+                <td><a href="{{ url_for('report_view', filename=report.filename) }}" class="btn btn-primary" style="padding: 0.5rem 1rem;">查看</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #868e96; text-align: center; padding: 2rem;">暂无报告</p>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}备份管理 - BTAUTOCHECK{% endblock %}
+{% block content %}
+<h2 style="margin-bottom: 2rem;">💾 备份管理</h2>
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>备份列表</span>
+        <button onclick="createBackup()" class="btn btn-primary">+ 创建新备份</button>
+    </div>
+    {% if backups %}
+    <table>
+        <thead>
+            <tr><th>版本</th><th>大小</th><th>创建时间</th><th>说明</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+            {% for backup in backups %}
+            <tr>
+                <td><span class="badge badge-success">{{ backup.version }}</span></td>
+                <td>{{ (backup.size / (1024*1024)) | round(2) }} MB</td>
+                <td>{{ backup.created_at }}</td>
+                <td>{{ backup.description }}</td>
+                <td><button onclick="restoreBackup('{{ backup.filepath }}')" class="btn btn-danger" style="padding: 0.5rem 1rem;">恢复</button></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #868e96; text-align: center; padding: 2rem;">暂无备份</p>
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function createBackup() {
+    const version = prompt('请输入版本号（例如：11.2.0）：', '{{ stats.current_version if stats else "manual" }}');
+    if (!version) return;
+    const desc = prompt('请输入备份说明（可选）：', '手动备份');
+    ajaxPost('{{ url_for("backup_create") }}', {version: version, description: desc}, function(data) {
+        alert(data.success ? '✅ ' + data.message : '❌ ' + data.message);
+        if (data.success) location.reload();
+    });
+}
+function restoreBackup(filepath) {
+    if (!confirm('⚠️ 警告：恢复备份会覆盖当前面板！\n\n确定要继续吗？')) return;
+    ajaxPost('{{ url_for("backup_restore", filepath=filepath) }}', {}, function(data) {
+        alert(data.success ? '✅ ' + data.message : '❌ ' + data.message);
+        if (data.success) setTimeout(() => location.reload(), 2000);
+    });
+}
+</script>
+{% endblock %}
+
