@@ -56,6 +56,55 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """修改密码"""
+    if request.method == 'POST':
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # 验证旧密码
+        old_password_hash = hashlib.sha256(old_password.encode()).hexdigest()
+        if old_password_hash != ADMIN_PASSWORD_HASH:
+            return render_template('change_password.html', error='旧密码错误')
+        
+        # 验证新密码
+        if len(new_password) < 6:
+            return render_template('change_password.html', error='新密码长度至少6位')
+        
+        if new_password != confirm_password:
+            return render_template('change_password.html', error='两次输入的新密码不一致')
+        
+        # 更新密码（写入配置文件）
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        
+        # 更新web_admin.py文件中的密码
+        try:
+            with open('web_admin.py', 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 替换密码哈希
+            content = content.replace(
+                f"ADMIN_PASSWORD_HASH = '{ADMIN_PASSWORD_HASH}'",
+                f"ADMIN_PASSWORD_HASH = '{new_password_hash}'"
+            )
+            
+            with open('web_admin.py', 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            # 同时保存到配置文件
+            with open('.admin_password', 'w') as f:
+                f.write(new_password_hash)
+            
+            return render_template('change_password.html', success='密码修改成功！请重新登录。', logout=True)
+        
+        except Exception as e:
+            return render_template('change_password.html', error=f'密码修改失败: {str(e)}')
+    
+    return render_template('change_password.html')
+
 @app.route('/')
 @login_required
 def dashboard():

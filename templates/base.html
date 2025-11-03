@@ -330,6 +330,8 @@
         <a href="{{ url_for('backup_list') }}" class="{% if request.endpoint == 'backup_list' %}active{% endif %}">💾 备份管理</a>
         <a href="{{ url_for('report_list') }}" class="{% if request.endpoint == 'report_list' %}active{% endif %}">📋 安全报告</a>
         <a href="{{ url_for('log_viewer') }}" class="{% if request.endpoint == 'log_viewer' %}active{% endif %}">📝 系统日志</a>
+        <hr style="margin: 1rem 0; border: none; border-top: 1px solid #dee2e6;">
+        <a href="{{ url_for('change_password') }}" class="{% if request.endpoint == 'change_password' %}active{% endif %}">🔐 修改密码</a>
     </div>
     
     <div class="main-content">
