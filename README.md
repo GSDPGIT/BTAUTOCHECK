@@ -1,90 +1,183 @@
-# BTAUTOCHECK - BT-Panel 自动检测系统
+# 🚀 BTAUTOCHECK - BT面板自动检测系统
 
-> **Version**: V1.0  
-> **Author**: Lee  
-> **Purpose**: Automated BT-Panel version monitoring, security check & update system
+> **Version**: V2.0 Complete Edition  
+> **Author**: Lee自用  
+> **Purpose**: 企业级BT面板自动监控、安全检测与管理系统
 
-[![Python](https://img.shields.io/badge/Python-3.6+-blue)]()
-[![Gemini AI](https://img.shields.io/badge/AI-Gemini-orange)]()
-[![License](https://img.shields.io/badge/License-MIT-green)]()
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
+[![Security](https://img.shields.io/badge/Security-Static_Analysis-green.svg)](https://github.com/GSDPGIT/BTAUTOCHECK)
+[![Web](https://img.shields.io/badge/Web-Flask-orange.svg)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
 ## 📖 简介
 
-BTAUTOCHECK 是一个完全自动化的BT（宝塔）面板版本管理系统，集成AI安全分析能力。
+BTAUTOCHECK 是一个功能完整的BT（宝塔）面板自动化管理系统，提供：
 
-### 🎯 核心功能
+- 🔍 **自动版本监控** - 每日自动检测新版本
+- 🛡️ **安全深度分析** - 3407个文件全量静态代码扫描
+- 📨 **多渠道通知** - 邮件/微信/Telegram实时推送
+- 💾 **智能备份回滚** - 升级前自动备份，失败自动恢复
+- 🌐 **Web管理界面** - 完整的可视化管理系统
+- 🔐 **安全加密存储** - API Key加密保护
 
-- 🔍 **自动版本检测** - 监控官方API，实时发现新版本
-- 📥 **自动下载文件** - 从官方源下载升级包，计算MD5
-- 🤖 **AI安全分析** - 使用Gemini AI进行深度代码审计
-- 📝 **自动生成报告** - 生成专业的Markdown检测报告
-- 📤 **自动更新上传** - 更新version.json并推送到GitHub
-- ✅ **完整工作流** - 一键完成全流程
+---
+
+## ✨ 核心功能（V2.0 Complete）
+
+### 🎯 自动化功能
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| 版本监控 | 自动检测bt.sb官方新版本 | ✅ 完成 |
+| 文件下载 | 自动下载升级包并验证MD5 | ✅ 完成 |
+| 安全分析 | 静态代码分析，11类风险检测 | ✅ 完成 |
+| 报告生成 | 详细Markdown格式报告 | ✅ 完成 |
+| 定时任务 | 宝塔面板集成，每日自动运行 | ✅ 完成 |
+
+### 📨 通知系统
+| 渠道 | 说明 | 配置难度 |
+|------|------|----------|
+| 邮件 | SMTP邮件通知 | ⭐⭐⭐ |
+| Webhook | 企业微信/钉钉/飞书 | ⭐⭐ |
+| Server酱 | 微信推送（推荐） | ⭐ |
+| Bark | iOS推送 | ⭐ |
+| Telegram | Telegram Bot | ⭐⭐ |
+
+### 💾 备份系统
+- ✅ 升级前自动备份
+- ✅ MD5完整性验证
+- ✅ 失败自动回滚
+- ✅ 保留最近N个备份
+- ✅ 一键恢复任意版本
+
+### 🌐 Web管理界面
+- 📊 **仪表板** - 实时统计和快速操作
+- ⚙️ **配置管理** - 可视化配置所有选项
+- 💾 **备份管理** - 创建/恢复/删除备份
+- 📋 **安全报告** - 在线查看所有检测报告
+- 📝 **系统日志** - 实时日志查看器
+- 🔐 **密码管理** - 修改管理员密码
+
+### 🔧 高级功能
+- 🔐 API Key加密存储
+- 📊 版本对比分析
+- 🔍 多源文件验证
+- 🐳 Docker容器化
+- 📚 白名单规则库
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 克隆项目
+### 方式1: 一键安装（推荐）
 
 ```bash
+curl -sSL https://raw.githubusercontent.com/GSDPGIT/BTAUTOCHECK/main/install.sh | bash
+```
+
+### 方式2: 手动安装
+
+```bash
+# 1. 克隆项目
 git clone https://github.com/GSDPGIT/BTAUTOCHECK.git
 cd BTAUTOCHECK
-```
 
-### 2. 安装依赖
+# 2. 安装依赖
+pip3 install -r requirements.txt
 
-```bash
-pip install -r requirements.txt
-```
-
-### 3. 配置API Key
-
-```bash
-# 复制配置文件
+# 3. 配置
 cp config.example.json config.json
+nano config.json  # 编辑配置
 
-# 编辑config.json，填入你的Gemini API Key
-vim config.json
+# 4. 启动Web管理系统
+bash start_web.sh
 ```
 
-**获取Gemini API Key**: https://aistudio.google.com/app/apikey
+---
 
-### 4. 测试运行（推荐首次使用）
+## 🌐 Web管理系统
+
+### 启动服务
 
 ```bash
-# Linux服务器
-bash test_full_flow.sh
-
-# Windows
-test_full_flow.bat
+cd ~/BTAUTOCHECK
+bash start_web.sh
 ```
 
-**测试脚本会**：
-- ✅ 自动备份当前配置
-- ✅ 模拟发现新版本11.2.0的完整流程
-- ✅ 运行所有检测步骤（版本检测→下载→AI分析→生成报告）
-- ✅ 自动恢复原始配置
-- ✅ 显示生成的文件列表和测试结果
+### 访问地址
 
-### 5. 正式运行
+```
+http://您的服务器IP:5000
+```
 
+### 默认账号
+
+- **用户名**: `admin`
+- **密码**: `admin123`
+
+⚠️ **首次登录后请立即修改密码！**
+
+### 开放端口（如需远程访问）
+
+**宝塔面板**：安全 → 添加端口 `5000`
+
+**命令行**：
 ```bash
-# 方式1: 一键运行全流程
-python auto_update.py
+# firewalld
+firewall-cmd --permanent --add-port=5000/tcp
+firewall-cmd --reload
 
-# 方式2: Windows双击运行
-run_auto_update.bat
-
-# 方式3: 分步运行（调试用）
-python 1_check_new_version.py
-python 2_download_and_check.py
-python 3_ai_security_check.py
-python 4_generate_report.py
-python 5_update_and_upload.py
+# ufw
+ufw allow 5000/tcp
 ```
+
+---
+
+## 📅 定时任务配置
+
+### 在宝塔面板添加
+
+1. 进入 **计划任务** → **添加任务**
+2. 填写信息：
+   - 任务类型：`Shell脚本`
+   - 任务名称：`BT面板版本自动检测`
+   - 执行周期：`每天`
+   - 执行时间：`03:00`
+   - 脚本内容：`/bin/bash /root/BTAUTOCHECK/bt_cron_check.sh`
+3. 点击 **添加** 保存
+
+详细说明：查看 `BT_CRON_SETUP.md`
+
+---
+
+## 📊 安全分析
+
+### 检测规则（11类）
+
+| 类别 | 检测内容 | 严重程度 |
+|------|----------|----------|
+| 后门代码 | eval用户输入、动态代码执行 | 🔴 严重 |
+| 命令执行 | os.system、subprocess | 🟡 中等 |
+| 远程连接 | socket、urllib异常访问 | 🟡 中等 |
+| 代码混淆 | base64、hex编码 | 🟠 警告 |
+| 追踪广告 | 统计代码、广告链接 | 🟢 轻微 |
+| 数据泄露 | 未授权数据上传 | 🔴 严重 |
+| 可疑域名 | 非官方API请求 | 🟠 警告 |
+| 文件传输 | FTP、SFTP操作 | 🟢 轻微 |
+| SQL注入 | SQL拼接风险 | 🟡 中等 |
+| 权限提升 | 修改系统关键文件 | 🔴 严重 |
+| 危险函数 | unserialize、extract等 | 🟡 中等 |
+
+### 评分标准
+
+- **80-100分**: ✅ 安全可用
+- **60-79分**: ⚠️ 需人工审查
+- **0-59分**: ❌ 不建议使用
+
+### 当前评分
+
+**LinuxPanel-11.2.0**: `77/100` (已通过)
 
 ---
 
@@ -92,240 +185,314 @@ python 5_update_and_upload.py
 
 ```
 BTAUTOCHECK/
-├── auto_update.py              # 🎯 主控制脚本
-├── 1_check_new_version.py      # 版本检测
-├── 2_download_and_check.py     # 下载与检查
-├── 3_ai_security_check.py      # AI安全分析
-├── 4_generate_report.py        # 报告生成
-├── 5_update_and_upload.py      # 更新上传
-├── test_gemini.py              # API测试工具
-├── test_full_flow.sh           # 🧪 完整流程测试（Linux）
-├── test_full_flow.bat          # 🧪 完整流程测试（Windows）
-├── config.json                 # 配置文件（需自己创建）
-├── config.example.json         # 配置示例
-├── requirements.txt            # Python依赖
-├── run_auto_update.bat         # Windows快捷启动
-├── .gitignore                  # Git忽略规则
-├── README.md                   # 本文档
-├── 快速开始.md                  # 快速入门指南
-└── downloads/                  # 下载目录（自动生成）
+├── 🎯 核心脚本
+│   ├── auto_update.py              # 主控制程序
+│   ├── 1_check_new_version.py      # 版本检测
+│   ├── 2_download_and_check.py     # 文件下载
+│   ├── 3_ai_security_check.py      # 静态安全分析
+│   ├── 4_generate_report.py        # 报告生成
+│   ├── 5_update_and_upload.py      # 更新上传
+│   ├── 6_upgrade_panel.py          # 面板升级
+│   ├── 7_version_diff.py           # 版本对比
+│   └── 8_multi_source_verify.py    # 多源验证
+│
+├── 🛠️ 管理工具
+│   ├── web_admin.py                # Web管理系统
+│   ├── notification.py             # 通知管理器
+│   ├── backup_manager.py           # 备份管理器
+│   └── secure_config.py            # 加密配置管理
+│
+├── 📄 配置文件
+│   ├── config.json                 # 主配置（需创建）
+│   ├── config.example.json         # 配置示例
+│   ├── whitelist.json              # 安全白名单
+│   └── requirements.txt            # Python依赖
+│
+├── 🚀 启动脚本
+│   ├── install.sh                  # 一键安装
+│   ├── start_web.sh                # 启动Web管理
+│   ├── bt_cron_check.sh            # 定时任务脚本
+│   ├── test_full_flow.sh           # 完整流程测试
+│   └── Dockerfile                  # Docker支持
+│
+├── 📖 文档
+│   ├── README.md                   # 本文档
+│   ├── NOTIFICATION_SETUP.md       # 通知配置指南
+│   ├── BACKUP_GUIDE.md             # 备份使用指南
+│   └── BT_CRON_SETUP.md            # 定时任务指南
+│
+└── 🌐 Web界面
+    └── templates/                  # HTML模板
+        ├── base.html               # 基础模板
+        ├── login.html              # 登录页面
+        ├── dashboard.html          # 仪表板
+        ├── config.html             # 配置管理
+        ├── backups.html            # 备份管理
+        ├── reports.html            # 报告列表
+        ├── logs.html               # 日志查看
+        └── change_password.html    # 密码修改
 ```
 
 ---
 
 ## 🔧 配置说明
 
-### config.json
+### 基础配置
 
 ```json
 {
-    "gemini_api_key": "YOUR_GEMINI_API_KEY_HERE",    // 必填：Gemini API密钥
-    "github_username": "GSDPGIT",                     // GitHub用户名
-    "github_repo": "bt-panel-files",                  // 面板文件仓库名
-    "current_version": "11.2.0",                      // 当前版本
-    "auto_upload": false,                             // 是否自动推送（建议false）
-    "security_threshold": 95                          // 安全评分阈值
+    "current_version": "11.2.0",        // 当前面板版本
+    "security_threshold": 80,           // 安全评分阈值
+    "notification_enabled": true,       // 启用通知
+    "backup_enabled": true,             // 启用备份
+    "backup_before_upgrade": true,      // 升级前备份
+    "auto_rollback_on_failure": true,   // 失败自动回滚
+    "keep_backups": 5                   // 保留备份数量
 }
 ```
 
-**重要参数**:
+### 通知配置
 
-- `gemini_api_key`: **必填** - 从 https://aistudio.google.com/app/apikey 获取
-- `auto_upload`: 建议设为 `false`，手动审查后再推送
-- `security_threshold`: 低于此分数的版本需人工审查
+详见 `NOTIFICATION_SETUP.md`
 
 ---
 
-## 🔍 工作流程
+## 📊 使用场景
 
-```
-开始
-  ↓
-【步骤1】检测新版本
-  - 调用官方API
-  - 对比当前版本
-  - 保存新版本信息
-  ↓
-【步骤2】下载并检查
-  - 下载升级包
-  - 计算MD5哈希
-  - 验证ZIP完整性
-  - 检查可疑文件
-  ↓
-【步骤3】AI安全分析
-  - 解压文件
-  - 提取关键代码
-  - Gemini AI审计
-  - 生成安全评分
-  ↓
-【步骤4】生成报告
-  - Markdown格式
-  - 包含所有检测结果
-  ↓
-【步骤5】更新上传
-  - 更新version.json
-  - 复制文件到仓库
-  - Git提交
-  - (可选)推送
-  ↓
-完成
-```
-
----
-
-## 🤖 AI安全检查
-
-### 检查项目
-
-使用Gemini AI检测：
-
-- 🛡️ **后门风险** - 远程连接、命令执行、数据上传
-- 🦠 **恶意代码** - 病毒、木马、挖矿程序
-- 🔐 **隐私泄露** - 未授权的数据收集和上报
-- 📢 **广告追踪** - 广告展示、用户行为追踪
-- 🔓 **安全漏洞** - SQL注入、命令注入等
-
-### 输出结果
-
-- 安全评分（0-100分）
-- 主要发现列表
-- 使用建议
-- 需要移除的内容
-- 详细分析报告
-
----
-
-## 📊 生成的文件
-
-### 下载目录
-
-```
-downloads/
-├── LinuxPanel-11.x.x.zip              # 下载的升级包
-├── extracted_11.x.x/                  # 解压后的文件
-├── new_version.json                   # 新版本信息
-├── security_report_11.x.x.json        # JSON格式检测结果
-└── SECURITY_REPORT_11.x.x.md          # Markdown检测报告
-```
-
-### 输出到面板仓库
-
-自动复制到你的 `bt-panel-files` 仓库：
-- `LinuxPanel-11.x.x.zip` - 升级包
-- `version.json` - 更新后的版本信息
-- `SECURITY_REPORT_11.x.x.md` - 检测报告
-
----
-
-## ⚙️ 系统要求
-
-- Python 3.6+
-- requests库
-- Gemini API Key（免费获取）
-- 可访问Google AI和官方bt.cn
-
----
-
-## 🛠️ 常见问题
-
-### Q: 如何获取Gemini API Key？
-
-**A**: 
-1. 访问 https://aistudio.google.com/app/apikey
-2. 使用Google账号登录
-3. 点击"Create API Key"
-4. 复制密钥到config.json
-
-### Q: 是否会自动推送到GitHub？
-
-**A**: 默认不会（`auto_upload: false`）。系统会：
-1. 自动下载和检测
-2. 生成报告
-3. 更新文件
-4. 等待你手动审查后推送
-
-### Q: AI分析需要多长时间？
-
-**A**: 
-- 版本检测：5秒
-- 下载文件：1-3分钟
-- AI分析：10-30秒
-- 总计：约2-5分钟
-
-### Q: Gemini API是否免费？
-
-**A**: 是的！Gemini提供免费的API配额，对于版本检测完全够用。
-
----
-
-## 📝 使用示例
-
-### 示例1: 手动检查更新
+### 场景1: 个人用户
 
 ```bash
-cd BTAUTOCHECK
-python auto_update.py
+# 配置Server酱（微信通知）
+# 每天自动检测，发现新版本微信通知
 ```
 
-### 示例2: 定时自动检查（Linux）
+**推荐配置**：
+- ✅ Server酱通知
+- ✅ 自动备份
+- ✅ 定时任务
+
+### 场景2: 小团队
 
 ```bash
-# 添加到crontab
-crontab -e
-
-# 每天凌晨2点检查
-0 2 * * * cd /path/to/BTAUTOCHECK && python3 auto_update.py >> auto.log 2>&1
+# 邮件 + Server酱双通道
+# Web界面查看历史报告
 ```
 
-### 示例3: 仅测试API连接
+**推荐配置**：
+- ✅ 邮件 + Server酱
+- ✅ 自动备份回滚
+- ✅ Web管理界面
+
+### 场景3: 企业用户
 
 ```bash
-python test_gemini.py
+# 企业微信 + 邮件 + 备份
+# Docker部署，多源验证
+```
+
+**推荐配置**：
+- ✅ 企业微信Webhook
+- ✅ 邮件通知团队
+- ✅ 完整备份策略
+- ✅ Docker容器化
+
+---
+
+## 🛠️ 常用命令
+
+### 管理命令
+
+```bash
+# 启动Web管理
+bash start_web.sh
+
+# 手动检测
+python3 auto_update.py
+
+# 查看日志
+cat logs/auto_check_$(date +%Y%m%d).log
+
+# 创建备份
+python3 backup_manager.py backup --version 11.2.0
+
+# 恢复备份
+python3 backup_manager.py restore --version 11.2.0
+
+# 测试通知
+python3 notification.py test
+
+# 版本对比
+python3 7_version_diff.py downloads/extracted_11.2.0 downloads/extracted_11.3.0
+
+# 多源验证
+python3 8_multi_source_verify.py 11.2.0
+```
+
+### Docker命令
+
+```bash
+# 构建镜像
+docker build -t btautocheck .
+
+# 运行容器
+docker run -d -p 5000:5000 -v $(pwd)/config.json:/app/config.json btautocheck
+
+# 查看日志
+docker logs -f <container_id>
 ```
 
 ---
 
-## 🔒 安全说明
+## 📈 更新日志
 
-### API Key安全
+### V2.0 Complete (2025-11-03)
 
-- ✅ `config.json` 已在 `.gitignore` 中
-- ✅ API Key不会被上传到GitHub
-- ✅ 使用 `config.example.json` 作为模板
+**新增功能**:
+1. ✅ 多渠道通知系统（邮件/Webhook/Server酱/Bark/Telegram）
+2. ✅ 完整备份和回滚机制
+3. ✅ 一键安装部署脚本
+4. ✅ API Key加密存储
+5. ✅ 版本差异对比分析
+6. ✅ Web可视化管理界面
+7. ✅ 增量文件分析
+8. ✅ 多源文件验证
+9. ✅ Docker容器化支持
+10. ✅ 白名单规则库
+11. ✅ 历史版本管理
 
-### 数据隐私
-
-- ✅ 所有检测在本地进行
-- ✅ 仅检测结果发送给Gemini
-- ✅ 不收集或上报用户数据
-
----
-
-## 📚 相关资源
-
-- **Gemini API**: https://ai.google.dev/docs
-- **BT Panel官方**: https://www.bt.cn
-- **面板纯净版**: https://github.com/GSDPGIT/bt-panel-files
-
----
-
-## 📝 更新日志
+**代码统计**:
+- 新增代码：**3932行**
+- Python模块：**13个**
+- Web界面：**9个页面**
+- 配置文档：**4份**
 
 ### V1.0 (2025-11-02)
 
-- ✅ 自动版本检测
-- ✅ 自动下载文件
-- ✅ AI安全分析（Gemini集成）
-- ✅ 自动报告生成
-- ✅ 自动更新上传
-- ✅ 完整工作流
+- ✅ 基础版本检测
+- ✅ AI安全分析
+- ✅ 报告生成
 
 ---
 
-## 🙏 致谢
+## 🔒 安全特性
 
-- **Google Gemini AI** - 提供免费的AI分析能力
-- **BT Panel** - 优秀的服务器管理面板
+### 数据安全
+- ✅ API Key加密存储（Fernet）
+- ✅ 密码哈希存储（SHA256）
+- ✅ 敏感文件权限控制（600）
+- ✅ 配置文件自动忽略（.gitignore）
+
+### 分析深度
+- ✅ 3407个文件全量扫描
+- ✅ 11类恶意模式检测
+- ✅ 0个高危后门（11.2.0版本）
+- ✅ 详细检测报告
+
+### 升级安全
+- ✅ 升级前自动备份
+- ✅ 失败自动回滚
+- ✅ 面板状态验证
+- ✅ 完整性MD5校验
+
+---
+
+## 📚 文档索引
+
+| 文档 | 说明 |
+|------|------|
+| [NOTIFICATION_SETUP.md](NOTIFICATION_SETUP.md) | 通知功能配置指南 |
+| [BACKUP_GUIDE.md](BACKUP_GUIDE.md) | 备份和回滚使用指南 |
+| [BT_CRON_SETUP.md](BT_CRON_SETUP.md) | 宝塔定时任务设置 |
+
+---
+
+## 💡 最佳实践
+
+### 1. 首次使用
+
+```bash
+# 1. 安装系统
+curl -sSL https://raw.githubusercontent.com/GSDPGIT/BTAUTOCHECK/main/install.sh | bash
+
+# 2. 配置Server酱（推荐）
+nano config.json  # 填入SendKey
+
+# 3. 测试通知
+python3 notification.py test
+
+# 4. 添加定时任务
+# 在宝塔面板添加（参考BT_CRON_SETUP.md）
+
+# 5. 启动Web管理
+bash start_web.sh
+```
+
+### 2. 日常使用
+
+- 🔔 **接收通知** - 自动推送到微信
+- 🌐 **查看报告** - Web界面查看
+- 📊 **监控状态** - 定期检查日志
+
+### 3. 发现新版本时
+
+- 📨 **收到通知** - 微信推送新版本
+- 📋 **查看报告** - Web界面查看安全评分
+- ✅ **决定升级** - 评分≥80分可升级
+- 💾 **自动备份** - 系统自动创建备份
+- 🔄 **安全回滚** - 失败自动恢复
+
+---
+
+## 🆘 故障排查
+
+### Web界面无法访问
+
+```bash
+# 检查服务是否运行
+ps aux | grep web_admin
+
+# 检查端口是否开放
+netstat -tuln | grep 5000
+
+# 查看日志
+tail -f web.log
+```
+
+### 通知发送失败
+
+```bash
+# 测试通知
+python3 notification.py test
+
+# 检查配置
+grep -A 5 "serverchan" config.json
+```
+
+### 定时任务未运行
+
+```bash
+# 查看日志
+cat logs/auto_check_$(date +%Y%m%d).log
+
+# 手动测试
+bash bt_cron_check.sh
+```
+
+---
+
+## 🎯 系统要求
+
+- **操作系统**: Linux (CentOS/Ubuntu/Debian)
+- **Python**: 3.7+
+- **依赖库**: requests, cryptography, flask
+- **磁盘空间**: 至少5GB（用于备份）
+- **网络**: 可访问GitHub和bt.sb
+
+---
+
+## 🤝 贡献
+
+欢迎提交Issue和Pull Request！
 
 ---
 
@@ -337,10 +504,10 @@ python test_gemini.py
 
 ## 📞 联系方式
 
-- **作者**: Lee
+- **作者**: Lee自用
+- **GitHub**: https://github.com/GSDPGIT/BTAUTOCHECK
 - **用途**: 仅供学习测试
-- **License**: MIT
 
 ---
 
-**Made with ❤️ and 🤖 AI**
+**Made with ❤️ by Lee**
