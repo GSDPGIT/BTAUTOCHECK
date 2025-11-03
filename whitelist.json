@@ -1,0 +1,25 @@
+{
+  "comment": "安全白名单 - 已知安全的代码模式",
+  "whitelist": {
+    "files": [
+      "class/panelPlugin.py",
+      "static/js/jquery.min.js"
+    ],
+    "patterns": [
+      "eval(compile(base64.b64decode",
+      "getattr(__import__",
+      "os.system('bt "
+    ],
+    "functions": {
+      "eval": {
+        "safe_contexts": [
+          "config parsing",
+          "json decode"
+        ]
+      }
+    }
+  },
+  "version": "1.0",
+  "last_updated": "2025-11-03"
+}
+
