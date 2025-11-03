@@ -27,6 +27,70 @@
     </div>
     
     <div class="card">
+        <div class="card-header">⏰ 自动检测调度器</div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用自动检测</span>
+                <label class="switch">
+                    <input type="checkbox" name="scheduler_enabled" {% if config.scheduler.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">启用后将按设定间隔自动检测新版本</small>
+        </div>
+        
+        <div class="form-group">
+            <label>检测间隔（小时）</label>
+            <select name="scheduler_interval" class="form-control">
+                <option value="1" {% if config.scheduler.interval_hours == 1 %}selected{% endif %}>每1小时</option>
+                <option value="2" {% if config.scheduler.interval_hours == 2 %}selected{% endif %}>每2小时</option>
+                <option value="3" {% if config.scheduler.interval_hours == 3 %}selected{% endif %}>每3小时</option>
+                <option value="6" {% if config.scheduler.interval_hours == 6 %}selected{% endif %}>每6小时</option>
+                <option value="12" {% if config.scheduler.interval_hours == 12 %}selected{% endif %}>每12小时</option>
+                <option value="24" {% if config.scheduler.interval_hours == 24 %}selected{% endif %}>每24小时（一天一次）</option>
+            </select>
+            <small style="color: #868e96;">建议：生产环境1-2小时，测试环境6-12小时</small>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">📦 GitHub上传配置</div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用自动上传</span>
+                <label class="switch">
+                    <input type="checkbox" name="auto_upload" {% if config.auto_upload %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">检测完成后自动上传报告到GitHub仓库</small>
+        </div>
+        
+        <div class="form-group">
+            <label>GitHub用户名</label>
+            <input type="text" name="github_username" value="{{ config.github_username }}" placeholder="your_github_username">
+            <small style="color: #868e96;">你的GitHub用户名</small>
+        </div>
+        
+        <div class="form-group">
+            <label>GitHub仓库名</label>
+            <input type="text" name="github_repo" value="{{ config.github_repo }}" placeholder="bt-panel-files">
+            <small style="color: #868e96;">存放报告的仓库名称</small>
+        </div>
+        
+        <div class="form-group">
+            <label>GitHub Token</label>
+            <input type="password" name="github_token" value="{{ config.github_token }}" placeholder="ghp_xxxxxxxxxxxx">
+            <small style="color: #868e96;">
+                Personal Access Token，需要repo权限 
+                <a href="https://github.com/settings/tokens" target="_blank" style="color: #667eea;">获取Token →</a>
+            </small>
+        </div>
+    </div>
+    
+    <div class="card">
         <div class="card-header">备份配置</div>
         
         <div class="form-group">

@@ -157,6 +157,20 @@ def config_management():
         config['auto_rollback_on_failure'] = request.form.get('auto_rollback_on_failure') == 'on'
         config['keep_backups'] = int(request.form.get('keep_backups', 5))
         
+        # 更新调度器配置
+        if 'scheduler' not in config:
+            config['scheduler'] = {}
+        config['scheduler']['enabled'] = request.form.get('scheduler_enabled') == 'on'
+        config['scheduler']['interval_hours'] = int(request.form.get('scheduler_interval', 1))
+        
+        # 更新GitHub配置
+        config['auto_upload'] = request.form.get('auto_upload') == 'on'
+        config['github_username'] = request.form.get('github_username', '')
+        config['github_repo'] = request.form.get('github_repo', '')
+        github_token = request.form.get('github_token', '')
+        if github_token:
+            config['github_token'] = github_token
+        
         # 更新AI配置
         if 'ai_providers' not in config:
             config['ai_providers'] = {}
@@ -209,7 +223,10 @@ def config_management():
         with open('config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=4, ensure_ascii=False)
         
-        return jsonify({'success': True, 'message': '配置已保存'})
+        # 如果调度器配置有变化，重新初始化
+        init_scheduler()
+        
+        return jsonify({'success': True, 'message': '配置已保存，调度器已更新'})
     
     config = secure_config.load_config()
     return render_template('config.html', config=config)
@@ -378,32 +395,33 @@ def api_stats():
 
 def get_recent_reports(limit=5):
     """获取最近的报告"""
-    reports = []
-    pattern = 'downloads/SECURITY_REPORT_*.md'
-    files = glob.glob(pattern)
-    files.sort(key=os.path.getmtime, reverse=True)
-    
-    for filepath in files[:limit]:
-        filename = os.path.basename(filepath)
-        reports.append({
-            'filename': filename,
-            'size': os.path.getsize(filepath),
-            'mtime': datetime.fromtimestamp(os.path.getmtime(filepath)).strftime('%Y-%m-%d %H:%M:%S')
-        })
-    
-    return reports
+    # 复用get_all_reports并限制数量
+    all_reports = get_all_reports()
+    return all_reports[:limit]
 
 def get_all_reports():
     """获取所有报告"""
     reports = []
-    pattern = 'downloads/SECURITY_REPORT_*.md'
-    files = glob.glob(pattern)
+    # 使用不区分大小写的模式匹配
+    patterns = [
+        'downloads/SECURITY_REPORT_*.md',
+        'downloads/Security_Report_*.md',
+        'downloads/security_report_*.md'
+    ]
+    
+    files_set = set()
+    for pattern in patterns:
+        files_set.update(glob.glob(pattern))
+    
+    files = list(files_set)
     files.sort(key=os.path.getmtime, reverse=True)
     
     for filepath in files:
         filename = os.path.basename(filepath)
+        version = filename.replace('SECURITY_REPORT_', '').replace('Security_Report_', '').replace('security_report_', '').replace('.md', '')
         reports.append({
             'filename': filename,
+            'version': version,
             'size': os.path.getsize(filepath),
             'mtime': datetime.fromtimestamp(os.path.getmtime(filepath)).strftime('%Y-%m-%d %H:%M:%S')
         })
@@ -576,6 +594,42 @@ def scheduler_run_now():
         
         return jsonify({'success': True, 'message': '检测任务已启动，请稍后查看报告和日志'})
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/upload_to_github', methods=['POST'])
+@login_required
+def upload_to_github():
+    """手动上传报告到GitHub"""
+    try:
+        secure_config = SecureConfig()
+        config = secure_config.load_config()
+        
+        # 检查GitHub配置
+        if not config.get('github_username') or not config.get('github_repo') or not config.get('github_token'):
+            return jsonify({'success': False, 'message': '请先配置GitHub信息（用户名、仓库名、Token）'})
+        
+        # 运行5_update_and_upload.py
+        print(f"\n{'='*70}")
+        print(f"📤 手动上传到GitHub")
+        print(f"⏰ 触发时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{'='*70}\n")
+        
+        result = subprocess.run(
+            ['python3', '5_update_and_upload.py'],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(__file__) or '.'
+        )
+        
+        if result.returncode == 0:
+            print(f"\n✅ 上传成功")
+            return jsonify({'success': True, 'message': '✅ 报告已上传到GitHub'})
+        else:
+            print(f"\n❌ 上传失败: {result.stderr}")
+            return jsonify({'success': False, 'message': f'上传失败: {result.stderr[:200]}'})
+            
+    except Exception as e:
+        print(f"❌ 上传异常: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
 if __name__ == '__main__':

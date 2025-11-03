@@ -51,6 +51,9 @@
 <div class="card">
     <div class="card-header">快速操作</div>
     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <button onclick="uploadToGithub()" class="btn btn-primary">
+            📤 上传报告到GitHub
+        </button>
         <button onclick="testNotification()" class="btn btn-success">
             📨 测试通知
         </button>
@@ -178,6 +181,20 @@ function toggleScheduler() {
             loadSchedulerStatus();
         } else {
             alert('❌ ' + data.message);
+        }
+    });
+}
+
+function uploadToGithub() {
+    if (!confirm('确定要上传最新报告到GitHub吗？\n\n请确保已在配置管理中设置了GitHub信息。')) {
+        return;
+    }
+    
+    ajaxPost('{{ url_for("upload_to_github") }}', {}, function(data) {
+        if (data.success) {
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ ' + data.message + '\n\n提示：请先在"配置管理"中设置GitHub用户名、仓库名和Token');
         }
     });
 }
