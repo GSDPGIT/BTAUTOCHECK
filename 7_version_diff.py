@@ -81,7 +81,13 @@ def _file_changed(file1, file2):
     try:
         with open(file1, 'rb') as f1, open(file2, 'rb') as f2:
             return hashlib.md5(f1.read()).hexdigest() != hashlib.md5(f2.read()).hexdigest()
-    except:
+    except FileNotFoundError:
+        return True  # 文件不存在，视为改变
+    except IOError as e:
+        print(f"⚠️ 文件读取失败: {e}")
+        return True
+    except Exception as e:
+        print(f"⚠️ 文件比较异常: {e}")
         return True
 
 if __name__ == '__main__':

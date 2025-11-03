@@ -193,7 +193,13 @@ class BackupManager:
             with open(self.backup_info_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return data.get('backups', [])
-        except:
+        except FileNotFoundError:
+            return []
+        except json.JSONDecodeError as e:
+            print(f"⚠️ 备份信息文件格式错误: {e}")
+            return []
+        except Exception as e:
+            print(f"⚠️ 读取备份信息失败: {e}")
             return []
     
     def _calculate_md5(self, filepath):
@@ -237,8 +243,8 @@ class BackupManager:
                 with open(self.backup_info_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     backups = data.get('backups', [])
-            except:
-                pass
+            except Exception as e:
+                print(f"⚠️ 读取备份信息失败: {e}")
         
         backups.append(backup_info)
         
@@ -279,8 +285,10 @@ class BackupManager:
                 if os.path.exists(backup['filepath']):
                     os.remove(backup['filepath'])
                     print(f"🧹 已删除旧备份: {backup['filename']}")
-            except:
-                pass
+            except OSError as e:
+                print(f"⚠️ 删除备份文件失败 {backup['filename']}: {e}")
+            except Exception as e:
+                print(f"⚠️ 删除备份异常: {e}")
         
         # 更新备份信息文件
         kept_backups = backups[:keep]

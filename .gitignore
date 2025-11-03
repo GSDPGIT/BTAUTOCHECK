@@ -10,7 +10,11 @@ security_report_*.json
 # 保留示例配置但忽略实际配置
 config.json
 
-# 管理员密码文件
+# 安全敏感文件
 .admin_password
 .config.key
+.secret_key
+web_admin.py.save
+*.backup
+*.force_backup
 

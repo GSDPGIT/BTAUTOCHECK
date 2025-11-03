@@ -37,8 +37,11 @@ def get_official_version():
         # 先尝试解析JSON
         try:
             data = response.json()
-        except:
+        except json.JSONDecodeError:
             # 如果不是JSON，可能是纯文本格式的版本号
+            version_text = response.text.strip()
+        except Exception as e:
+            print(f"⚠️ 解析响应失败: {e}")
             version_text = response.text.strip()
             # 验证版本号格式（应该是数字.数字.数字）
             if version_text and len(version_text) < 20 and '.' in version_text:

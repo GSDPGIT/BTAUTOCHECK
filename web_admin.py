@@ -12,16 +12,77 @@ import json
 import hashlib
 import subprocess
 import glob
+import re
+import logging
 from datetime import datetime
 from secure_config import SecureConfig
 from backup_manager import BackupManager
 from notification import NotificationManager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from werkzeug.security import safe_join
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+import bcrypt
 import atexit
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+
+# 配置
+ADMIN_USERNAME = 'admin'
+ADMIN_PASSWORD_FILE = '.admin_password'
+SECRET_KEY_FILE = '.secret_key'
+AUDIT_LOG_FILE = 'logs/audit.log'
+
+# ========================================
+# 安全配置
+# ========================================
+
+def get_secret_key():
+    """获取或生成持久化的secret key"""
+    if os.path.exists(SECRET_KEY_FILE):
+        try:
+            with open(SECRET_KEY_FILE, 'rb') as f:
+                return f.read()
+        except Exception as e:
+            print(f"读取secret key失败: {e}")
+    
+    # 生成新密钥
+    key = os.urandom(24)
+    try:
+        with open(SECRET_KEY_FILE, 'wb') as f:
+            f.write(key)
+        os.chmod(SECRET_KEY_FILE, 0o600)
+        print(f"✅ 已生成新的secret key")
+    except Exception as e:
+        print(f"保存secret key失败: {e}")
+    
+    return key
+
+app.secret_key = get_secret_key()
+
+# 初始化CSRF保护
+csrf = CSRFProtect(app)
+
+# 初始化速率限制
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
+
+# 初始化审计日志
+os.makedirs('logs', exist_ok=True)
+audit_logger = logging.getLogger('audit')
+audit_handler = logging.FileHandler(AUDIT_LOG_FILE)
+audit_handler.setFormatter(logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s'
+))
+audit_logger.addHandler(audit_handler)
+audit_logger.setLevel(logging.INFO)
 
 # 初始化调度器
 scheduler = BackgroundScheduler(daemon=True)
@@ -30,20 +91,44 @@ scheduler.start()
 # 确保程序退出时关闭调度器
 atexit.register(lambda: scheduler.shutdown())
 
-# 配置
-ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD_FILE = '.admin_password'
+# ========================================
+# 密码管理（bcrypt）
+# ========================================
 
 def get_admin_password_hash():
-    """获取管理员密码哈希（实时从文件读取）"""
+    """获取管理员密码哈希（bcrypt版本）"""
     if os.path.exists(ADMIN_PASSWORD_FILE):
         try:
-            with open(ADMIN_PASSWORD_FILE, 'r') as f:
-                return f.read().strip()
-        except:
-            pass
-    # 默认密码：admin123
-    return hashlib.sha256('admin123'.encode()).hexdigest()
+            with open(ADMIN_PASSWORD_FILE, 'rb') as f:  # 二进制模式
+                return f.read()
+        except Exception as e:
+            print(f"读取密码文件失败: {e}")
+    
+    # 默认密码：admin123（bcrypt哈希）
+    default_hash = bcrypt.hashpw('admin123'.encode(), bcrypt.gensalt())
+    
+    # 保存默认密码
+    try:
+        with open(ADMIN_PASSWORD_FILE, 'wb') as f:
+            f.write(default_hash)
+        os.chmod(ADMIN_PASSWORD_FILE, 0o600)
+        print(f"✅ 已生成默认密码（bcrypt）")
+    except Exception as e:
+        print(f"保存默认密码失败: {e}")
+    
+    return default_hash
+
+def audit_log(action):
+    """审计日志装饰器"""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            username = session.get('username', 'anonymous')
+            ip = request.remote_addr
+            audit_logger.info(f"User:{username} IP:{ip} Action:{action}")
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 def login_required(f):
     """登录验证装饰器"""
@@ -55,63 +140,89 @@ def login_required(f):
     return decorated_function
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # 登录速率限制：每分钟最多10次
 def login():
-    """登录页面"""
+    """登录页面（bcrypt版本）"""
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
         
-        if username == ADMIN_USERNAME and password_hash == get_admin_password_hash():
-            session['logged_in'] = True
-            session['username'] = username
-            return redirect(url_for('dashboard'))
-        else:
-            return render_template('login.html', error='用户名或密码错误')
+        if not username or not password:
+            audit_logger.warning(f"IP:{request.remote_addr} 登录失败 - 缺少用户名或密码")
+            return render_template('login.html', error='请输入用户名和密码')
+        
+        stored_hash = get_admin_password_hash()
+        
+        try:
+            if username == ADMIN_USERNAME and bcrypt.checkpw(password.encode(), stored_hash):
+                session['logged_in'] = True
+                session['username'] = username
+                audit_logger.info(f"User:{username} IP:{request.remote_addr} 登录成功")
+                return redirect(url_for('dashboard'))
+            else:
+                audit_logger.warning(f"IP:{request.remote_addr} 登录失败 - 用户名或密码错误 (User:{username})")
+                return render_template('login.html', error='用户名或密码错误')
+        except Exception as e:
+            audit_logger.error(f"IP:{request.remote_addr} 登录异常: {e}")
+            return render_template('login.html', error='登录失败，请重试')
     
     return render_template('login.html')
 
 @app.route('/logout')
+@audit_log('登出')
 def logout():
     """登出"""
+    username = session.get('username', 'unknown')
     session.clear()
+    audit_logger.info(f"User:{username} IP:{request.remote_addr} 登出")
     return redirect(url_for('login'))
 
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
+@audit_log('修改密码')
 def change_password():
-    """修改密码"""
+    """修改密码（bcrypt版本）"""
     if request.method == 'POST':
         old_password = request.form.get('old_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
         
-        # 验证旧密码
-        old_password_hash = hashlib.sha256(old_password.encode()).hexdigest()
-        if old_password_hash != get_admin_password_hash():
-            return render_template('change_password.html', error='旧密码错误')
+        if not old_password or not new_password or not confirm_password:
+            return render_template('change_password.html', error='所有字段都必须填写')
         
-        # 验证新密码
-        if len(new_password) < 6:
-            return render_template('change_password.html', error='新密码长度至少6位')
+        # 验证旧密码（bcrypt）
+        stored_hash = get_admin_password_hash()
+        try:
+            if not bcrypt.checkpw(old_password.encode(), stored_hash):
+                audit_logger.warning(f"User:{session.get('username')} IP:{request.remote_addr} 修改密码失败 - 旧密码错误")
+                return render_template('change_password.html', error='旧密码错误')
+        except Exception as e:
+            audit_logger.error(f"密码验证异常: {e}")
+            return render_template('change_password.html', error='密码验证失败')
+        
+        # 验证新密码强度
+        if len(new_password) < 8:
+            return render_template('change_password.html', error='新密码长度至少8位')
         
         if new_password != confirm_password:
             return render_template('change_password.html', error='两次输入的新密码不一致')
         
-        # 更新密码（写入配置文件）
-        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
-        
-        # 保存到密码文件（实时生效，无需重启）
+        # 生成新密码哈希（bcrypt）
         try:
-            with open(ADMIN_PASSWORD_FILE, 'w') as f:
-                f.write(new_password_hash)
+            new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
             
-            os.chmod(ADMIN_PASSWORD_FILE, 0o600)  # 仅所有者可读写
+            # 保存到密码文件（二进制模式）
+            with open(ADMIN_PASSWORD_FILE, 'wb') as f:
+                f.write(new_hash)
             
+            os.chmod(ADMIN_PASSWORD_FILE, 0o600)
+            
+            audit_logger.info(f"User:{session.get('username')} IP:{request.remote_addr} 密码修改成功")
             return render_template('change_password.html', success='密码修改成功！请重新登录。', logout=True)
         
         except Exception as e:
-            return render_template('change_password.html', error=f'密码修改失败: {str(e)}')
+            audit_logger.error(f"密码保存失败: {e}")
+            return render_template('change_password.html', error='密码修改失败，请重试')
     
     return render_template('change_password.html')
 
@@ -145,6 +256,7 @@ def dashboard():
 
 @app.route('/config', methods=['GET', 'POST'])
 @login_required
+@audit_log('配置管理')
 def config_management():
     """配置管理"""
     secure_config = SecureConfig()
@@ -262,6 +374,8 @@ def backup_list():
 
 @app.route('/backup/create', methods=['POST'])
 @login_required
+@limiter.limit("10 per hour")
+@audit_log('创建备份')
 def backup_create():
     """创建备份"""
     version = request.form.get('version', 'manual')
@@ -277,6 +391,8 @@ def backup_create():
 
 @app.route('/backup/restore/<path:filepath>', methods=['POST'])
 @login_required
+@limiter.limit("5 per hour")
+@audit_log('恢复备份')
 def backup_restore(filepath):
     """恢复备份"""
     manager = BackupManager()
@@ -296,15 +412,52 @@ def report_list():
 
 @app.route('/report/view/<filename>')
 @login_required
+@audit_log('查看报告')
 def report_view(filename):
-    """查看报告"""
-    filepath = os.path.join('downloads', filename)
-    if os.path.exists(filepath):
+    """查看报告（安全版本）"""
+    # 严格验证文件名格式
+    if not re.match(r'^[A-Z_a-z]+_REPORT_[\d.]+\.md$', filename, re.IGNORECASE):
+        audit_logger.warning(f"User:{session.get('username')} IP:{request.remote_addr} 尝试访问非法报告文件: {filename}")
+        return "非法文件名", 400
+    
+    # 防止路径遍历
+    if '..' in filename or '/' in filename or '\\' in filename:
+        audit_logger.warning(f"User:{session.get('username')} IP:{request.remote_addr} 路径遍历尝试: {filename}")
+        return "非法文件名", 400
+    
+    # 安全路径拼接
+    try:
+        filepath = safe_join('downloads', filename)
+    except Exception as e:
+        audit_logger.error(f"路径拼接失败: {e}")
+        return "非法路径", 400
+    
+    if filepath is None or not os.path.exists(filepath):
+        return "报告不存在", 404
+    
+    # 限制文件大小（防DoS）
+    max_size = 10 * 1024 * 1024  # 10MB
+    try:
+        file_size = os.path.getsize(filepath)
+        if file_size > max_size:
+            audit_logger.warning(f"文件过大: {filepath} ({file_size} bytes)")
+            return "文件过大", 413
+    except Exception as e:
+        audit_logger.error(f"获取文件大小失败: {e}")
+        return "文件读取失败", 500
+    
+    # 确保文件在downloads目录内（双重检查）
+    if not os.path.abspath(filepath).startswith(os.path.abspath('downloads')):
+        audit_logger.critical(f"User:{session.get('username')} IP:{request.remote_addr} 尝试访问downloads外的文件: {filepath}")
+        return "非法访问", 403
+    
+    try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
         return render_template('report_view.html', filename=filename, content=content)
-    else:
-        return "报告不存在", 404
+    except Exception as e:
+        audit_logger.error(f"读取报告失败 {filepath}: {e}")
+        return "报告读取失败", 500
 
 @app.route('/logs')
 @login_required
@@ -315,18 +468,57 @@ def log_viewer():
 
 @app.route('/logs/view/<filename>')
 @login_required
+@audit_log('查看日志')
 def log_view(filename):
-    """查看日志"""
-    filepath = os.path.join('logs', filename)
-    if os.path.exists(filepath):
+    """查看日志（安全版本）"""
+    # 严格验证文件名格式（只允许auto_check_*.log和audit.log）
+    if not re.match(r'^(auto_check_\d{8}\.log|audit\.log)$', filename):
+        audit_logger.warning(f"User:{session.get('username')} IP:{request.remote_addr} 尝试访问非法日志文件: {filename}")
+        return jsonify({'success': False, 'message': '非法文件名'}), 400
+    
+    # 防止路径遍历
+    if '..' in filename or '/' in filename or '\\' in filename:
+        audit_logger.warning(f"User:{session.get('username')} IP:{request.remote_addr} 日志路径遍历尝试: {filename}")
+        return jsonify({'success': False, 'message': '非法文件名'}), 400
+    
+    # 安全路径拼接
+    try:
+        filepath = safe_join('logs', filename)
+    except Exception as e:
+        audit_logger.error(f"路径拼接失败: {e}")
+        return jsonify({'success': False, 'message': '非法路径'}), 400
+    
+    if filepath is None or not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': '日志不存在'}), 404
+    
+    # 限制文件大小
+    max_size = 5 * 1024 * 1024  # 5MB
+    try:
+        file_size = os.path.getsize(filepath)
+        if file_size > max_size:
+            audit_logger.warning(f"日志文件过大: {filepath} ({file_size} bytes)")
+            return jsonify({'success': False, 'message': '日志文件过大'}), 413
+    except Exception as e:
+        audit_logger.error(f"获取文件大小失败: {e}")
+        return jsonify({'success': False, 'message': '文件读取失败'}), 500
+    
+    # 确保文件在logs目录内
+    if not os.path.abspath(filepath).startswith(os.path.abspath('logs')):
+        audit_logger.critical(f"User:{session.get('username')} IP:{request.remote_addr} 尝试访问logs外的文件: {filepath}")
+        return jsonify({'success': False, 'message': '非法访问'}), 403
+    
+    try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
         return jsonify({'success': True, 'content': content})
-    else:
-        return jsonify({'success': False, 'message': '日志不存在'})
+    except Exception as e:
+        audit_logger.error(f"读取日志失败 {filepath}: {e}")
+        return jsonify({'success': False, 'message': '日志读取失败'}), 500
 
 @app.route('/check/run', methods=['POST'])
 @login_required
+@limiter.limit("5 per hour")  # 速率限制：每小时最多5次
+@audit_log('手动触发检测')
 def run_check():
     """手动触发检测"""
     try:
@@ -340,6 +532,8 @@ def run_check():
 
 @app.route('/notification/test', methods=['POST'])
 @login_required
+@limiter.limit("20 per hour")
+@audit_log('测试通知')
 def test_notification():
     """测试通知"""
     try:
@@ -355,6 +549,8 @@ def test_notification():
 
 @app.route('/ai/test', methods=['POST'])
 @login_required
+@limiter.limit("20 per hour")  # AI调用限制
+@audit_log('测试AI')
 def test_ai():
     """测试AI连接"""
     try:
@@ -578,6 +774,8 @@ def scheduler_status():
 
 @app.route('/scheduler/toggle', methods=['POST'])
 @login_required
+@limiter.limit("30 per hour")
+@audit_log('切换调度器')
 def scheduler_toggle():
     """启用/禁用调度器"""
     try:
@@ -604,6 +802,8 @@ def scheduler_toggle():
 
 @app.route('/scheduler/run_now', methods=['POST'])
 @login_required
+@limiter.limit("10 per hour")
+@audit_log('立即执行检测')
 def scheduler_run_now():
     """立即执行检测"""
     try:
@@ -619,6 +819,8 @@ def scheduler_run_now():
 
 @app.route('/upload_to_github', methods=['POST'])
 @login_required
+@limiter.limit("10 per hour")
+@audit_log('上传到GitHub')
 def upload_to_github():
     """手动上传报告到GitHub"""
     try:
@@ -657,20 +859,43 @@ if __name__ == '__main__':
     # 确保必要的目录存在
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static', exist_ok=True)
+    os.makedirs('logs', exist_ok=True)
+    os.makedirs('downloads', exist_ok=True)
+    os.makedirs('backups', exist_ok=True)
     
     # 初始化调度器
     init_scheduler()
     
     # 启动Web服务器
     print("=" * 70)
-    print("🌐 BTAUTOCHECK Web管理系统")
+    print("🌐 BTAUTOCHECK Web管理系统 V2.1 (Production)")
     print("=" * 70)
-    print(f"访问地址: http://0.0.0.0:5000")
-    print(f"默认账号: {ADMIN_USERNAME}")
-    print(f"默认密码: admin123")
+    print(f"🔐 安全特性:")
+    print(f"   ✅ bcrypt密码加密")
+    print(f"   ✅ CSRF保护")
+    print(f"   ✅ 速率限制")
+    print(f"   ✅ 路径遍历防护")
+    print(f"   ✅ 操作审计日志")
+    print(f"   ✅ Session持久化")
+    print("=" * 70)
+    print(f"📍 访问地址: http://0.0.0.0:5000")
+    print(f"👤 默认账号: {ADMIN_USERNAME}")
+    print(f"🔑 默认密码: admin123")
     print(f"")
-    print(f"⚠️  首次登录后请立即修改密码！")
+    print(f"⚠️  首次登录后请立即修改密码（最少8位）！")
+    print(f"📝 审计日志: {AUDIT_LOG_FILE}")
     print("=" * 70)
     
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # 使用Waitress生产服务器
+    try:
+        from waitress import serve
+        print(f"🚀 使用Waitress生产服务器启动...")
+        print(f"⏰ 自动检测调度器已启动")
+        print("=" * 70)
+        serve(app, host='0.0.0.0', port=5000, threads=6, channel_timeout=300)
+    except ImportError:
+        print(f"⚠️  Waitress未安装，使用Flask开发服务器（不推荐）")
+        print(f"   建议: pip install waitress")
+        print("=" * 70)
+        app.run(host='0.0.0.0', port=5000, debug=False)
 

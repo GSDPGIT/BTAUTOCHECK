@@ -22,9 +22,13 @@ def load_config():
 def check_panel_status():
     """检查面板状态"""
     try:
-        result = subprocess.run(['bt', 'status'], capture_output=True, text=True)
+        result = subprocess.run(['bt', 'status'], capture_output=True, text=True, timeout=10)
         return 'running' in result.stdout.lower()
-    except:
+    except subprocess.TimeoutExpired:
+        print("⚠️ 检查面板状态超时")
+        return False
+    except Exception as e:
+        print(f"⚠️ 检查面板状态失败: {e}")
         return False
 
 def upgrade_panel(version_info):

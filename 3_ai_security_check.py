@@ -183,8 +183,8 @@ def basic_security_check(zip_path):
                     if pattern in file_lower:
                         checks['suspicious_files'].append(file)
                         break
-    except:
-        pass
+    except Exception as e:
+        print(f"⚠️ 可疑文件检查异常: {e}")
     
     return checks
 
