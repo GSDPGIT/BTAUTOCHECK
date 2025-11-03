@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BT-Panel 静态安全检测脚本
-功能：使用规则引擎对下载的文件进行严格安全分析
+BT-Panel 混合安全检测脚本
+功能：静态规则分析 + AI深度分析（支持多种AI模型）
 """
 
 import json
@@ -12,6 +12,7 @@ import sys
 import hashlib
 import re
 from datetime import datetime
+from ai_analyzer import AIAnalyzer
 
 # 加载配置
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
@@ -653,6 +654,58 @@ def main():
     # 静态安全分析
     static_result = static_code_analysis(files_info, version)
     
+    # AI深度分析（如果启用）
+    ai_result = None
+    ai_config = config.get('ai_providers', {})
+    if ai_config.get('enabled', False):
+        print("\n" + "=" * 60)
+        print("🤖 AI深度安全分析")
+        print("=" * 60)
+        
+        try:
+            analyzer = AIAnalyzer()
+            
+            # 选择高风险文件进行AI分析
+            high_risk_files = []
+            for file_path, file_data in files_info.items():
+                if any(keyword in file_path.lower() for keyword in ['ajax', 'api', 'auth', 'login', 'admin', 'plugin']):
+                    high_risk_files.append(file_path)
+            
+            if high_risk_files:
+                print(f"📋 选择 {len(high_risk_files[:10])} 个高风险文件进行AI分析...")
+                ai_results = analyzer.batch_analyze_files(high_risk_files[:10], max_files=10)
+                
+                # 汇总AI分析结果
+                if ai_results:
+                    avg_score = sum(r.get('security_score', 0) for r in ai_results) / len(ai_results)
+                    all_findings = []
+                    for r in ai_results:
+                        all_findings.extend(r.get('findings', []))
+                    
+                    ai_result = {
+                        'provider': ai_results[0].get('ai_provider', 'unknown'),
+                        'analyzed_files': len(ai_results),
+                        'average_score': round(avg_score, 2),
+                        'total_findings': len(all_findings),
+                        'findings': all_findings[:20],  # 只保留前20个发现
+                        'overall_safe': avg_score >= 70
+                    }
+                    
+                    print(f"✅ AI分析完成")
+                    print(f"   使用模型: {ai_result['provider']}")
+                    print(f"   平均评分: {ai_result['average_score']}/100")
+                    print(f"   发现问题: {ai_result['total_findings']}个")
+                else:
+                    print("⚠️  AI分析未返回结果")
+            else:
+                print("ℹ️  未找到高风险文件")
+                
+        except Exception as e:
+            print(f"⚠️  AI分析失败: {e}")
+            print("   将仅使用静态分析结果")
+    else:
+        print("\nℹ️  AI分析未启用，仅使用静态分析")
+    
     # 保存完整结果
     final_result = {
         'version': version,
@@ -662,6 +715,7 @@ def main():
         'check_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'basic_check': basic_check,
         'static_analysis': static_result,
+        'ai_analysis': ai_result,
         'files_analyzed': len(files_info)
     }
     

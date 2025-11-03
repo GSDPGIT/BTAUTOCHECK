@@ -1,5 +1,4 @@
 {
-    "gemini_api_key": "YOUR_GEMINI_API_KEY_HERE",
     "github_username": "GSDPGIT",
     "github_repo": "bt-panel-files",
     "github_token": "",
@@ -14,6 +13,69 @@
     "backup_before_upgrade": true,
     "auto_rollback_on_failure": true,
     "keep_backups": 5,
+    "ai_providers": {
+        "enabled": true,
+        "primary_provider": "gemini",
+        "fallback_enabled": true,
+        "gemini": {
+            "enabled": true,
+            "api_key": "YOUR_GEMINI_API_KEY_HERE",
+            "model": "gemini-2.0-flash-exp",
+            "api_url": "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        },
+        "openai": {
+            "enabled": false,
+            "api_key": "YOUR_OPENAI_API_KEY",
+            "model": "gpt-4-turbo-preview",
+            "api_url": "https://api.openai.com/v1/chat/completions",
+            "organization": ""
+        },
+        "claude": {
+            "enabled": false,
+            "api_key": "YOUR_ANTHROPIC_API_KEY",
+            "model": "claude-3-opus-20240229",
+            "api_url": "https://api.anthropic.com/v1/messages"
+        },
+        "qianwen": {
+            "enabled": false,
+            "api_key": "YOUR_QIANWEN_API_KEY",
+            "model": "qwen-max",
+            "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+        },
+        "wenxin": {
+            "enabled": false,
+            "api_key": "YOUR_WENXIN_API_KEY",
+            "secret_key": "YOUR_WENXIN_SECRET_KEY",
+            "model": "ERNIE-Bot-4",
+            "api_url": "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro"
+        },
+        "zhipu": {
+            "enabled": false,
+            "api_key": "YOUR_ZHIPU_API_KEY",
+            "model": "glm-4",
+            "api_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+        },
+        "deepseek": {
+            "enabled": false,
+            "api_key": "YOUR_DEEPSEEK_API_KEY",
+            "model": "deepseek-chat",
+            "api_url": "https://api.deepseek.com/v1/chat/completions"
+        },
+        "kimi": {
+            "enabled": false,
+            "api_key": "YOUR_KIMI_API_KEY",
+            "model": "moonshot-v1-8k",
+            "api_url": "https://api.moonshot.cn/v1/chat/completions"
+        },
+        "xunfei": {
+            "enabled": false,
+            "app_id": "YOUR_XUNFEI_APPID",
+            "api_key": "YOUR_XUNFEI_API_KEY",
+            "api_secret": "YOUR_XUNFEI_API_SECRET",
+            "model": "generalv3.5",
+            "api_url": "wss://spark-api.xf-yun.com/v3.5/chat"
+        }
+    },
     "notifications": {
         "email": {
             "enabled": false,

@@ -1,5 +1,4 @@
 {
-    "gemini_api_key": "YOUR_GEMINI_API_KEY_HERE",
     "github_username": "your_github_username",
     "github_repo": "bt-panel-files",
     "github_token": "",
@@ -14,6 +13,69 @@
     "backup_before_upgrade": true,
     "auto_rollback_on_failure": true,
     "keep_backups": 5,
+    "ai_providers": {
+        "enabled": false,
+        "primary_provider": "gemini",
+        "fallback_enabled": true,
+        "gemini": {
+            "enabled": false,
+            "api_key": "YOUR_GEMINI_API_KEY",
+            "model": "gemini-2.0-flash-exp",
+            "comment": "Google Gemini - 免费且强大，推荐！获取: https://aistudio.google.com/app/apikey"
+        },
+        "openai": {
+            "enabled": false,
+            "api_key": "sk-proj-...",
+            "model": "gpt-4-turbo-preview",
+            "organization": "",
+            "comment": "OpenAI GPT-4 - 最强大，付费。获取: https://platform.openai.com/api-keys"
+        },
+        "claude": {
+            "enabled": false,
+            "api_key": "sk-ant-...",
+            "model": "claude-3-opus-20240229",
+            "comment": "Anthropic Claude - 安全专家，付费。获取: https://console.anthropic.com/"
+        },
+        "qianwen": {
+            "enabled": false,
+            "api_key": "sk-...",
+            "model": "qwen-max",
+            "comment": "阿里通义千问 - 国内快速，有免费额度。获取: https://dashscope.console.aliyun.com/"
+        },
+        "wenxin": {
+            "enabled": false,
+            "api_key": "YOUR_API_KEY",
+            "secret_key": "YOUR_SECRET_KEY",
+            "model": "ERNIE-Bot-4",
+            "comment": "百度文心一言 - 中文优化，有免费额度。获取: https://console.bce.baidu.com/qianfan/"
+        },
+        "zhipu": {
+            "enabled": false,
+            "api_key": "YOUR_API_KEY.xxx",
+            "model": "glm-4",
+            "comment": "智谱GLM - 开源友好，性价比高。获取: https://open.bigmodel.cn/"
+        },
+        "deepseek": {
+            "enabled": false,
+            "api_key": "sk-...",
+            "model": "deepseek-chat",
+            "comment": "DeepSeek - 价格最低，代码理解强。获取: https://platform.deepseek.com/"
+        },
+        "kimi": {
+            "enabled": false,
+            "api_key": "sk-...",
+            "model": "moonshot-v1-8k",
+            "comment": "Kimi月之暗面 - 长文本支持。获取: https://platform.moonshot.cn/"
+        },
+        "xunfei": {
+            "enabled": false,
+            "app_id": "YOUR_APP_ID",
+            "api_key": "YOUR_API_KEY",
+            "api_secret": "YOUR_API_SECRET",
+            "model": "generalv3.5",
+            "comment": "讯飞星火 - 国产可控（当前版本暂不支持WebSocket）"
+        }
+    },
     "notifications": {
         "email": {
             "enabled": false,

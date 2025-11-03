@@ -16,6 +16,7 @@ def generate_markdown_report(result_data):
     md5 = result_data['md5']
     basic_check = result_data.get('basic_check', {})
     static_analysis = result_data.get('static_analysis', {})
+    ai_analysis = result_data.get('ai_analysis', None)
     category_stats = static_analysis.get('category_stats', {})
     findings = static_analysis.get('findings', {})
     
@@ -102,7 +103,54 @@ def generate_markdown_report(result_data):
 
 ---
 
-## 📊 安全评分总览
+## 🤖 AI深度分析
+
+"""
+    
+    # 添加AI分析结果
+    if ai_analysis:
+        report += f"""
+**AI模型**: {ai_analysis.get('provider', 'Unknown').upper()}  
+**分析文件数**: {ai_analysis.get('analyzed_files', 0)} 个高风险文件  
+**AI评分**: {ai_analysis.get('average_score', 0)}/100  
+**发现问题**: {ai_analysis.get('total_findings', 0)} 个  
+**AI建议**: {'✅ 安全可用' if ai_analysis.get('overall_safe', False) else '⚠️ 需要审查'}
+
+<details>
+<summary><b>展开查看AI发现的问题</b></summary>
+
+"""
+        ai_findings = ai_analysis.get('findings', [])
+        if ai_findings:
+            for i, finding in enumerate(ai_findings[:10], 1):
+                report += f"""
+**问题 {i}**: {finding.get('type', 'Unknown')}  
+- **严重程度**: {finding.get('severity', 'unknown')}  
+- **描述**: {finding.get('description', 'N/A')}  
+- **位置**: 第 {finding.get('line', 'N/A')} 行
+"""
+        else:
+            report += "\n✅ AI未发现明显安全问题\n"
+        
+        report += "\n</details>\n"
+    else:
+        report += """
+**AI分析状态**: ⚪ 未启用
+
+要启用AI分析，请在 `config.json` 中配置：
+```json
+"ai_providers": {
+    "enabled": true,
+    "primary_provider": "gemini"
+}
+```
+
+"""
+    
+    report += """
+---
+
+## 📊 静态规则分析
 
 **综合评分**: {static_analysis.get('security_score', 0)}/100  
 **总扣分**: {static_analysis.get('total_deductions', 0)}分
