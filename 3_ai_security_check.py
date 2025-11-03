@@ -370,102 +370,118 @@ def static_code_analysis(files_info, version):
     privilege_escalation = len(findings.get('privilege_escalation', []))
     dangerous_functions = len(findings.get('dangerous_functions', []))
     
-    # 智能扣分规则（优化误报）
-    # 1. 高危后门特征（eval($var), assert($var)等）
+    # 合理化扣分规则（针对管理面板特性优化）
+    # 1. 高危后门特征（真正的安全问题）
     if backdoor_critical > 50:
         deduct = 30
         deductions += deduct
         risk_details.append(f"🚨 高危后门特征（严重）: {backdoor_critical}处 (-{deduct}分)")
     elif backdoor_critical > 20:
-        deduct = 20
+        deduct = 25
         deductions += deduct
         risk_details.append(f"🚨 高危后门特征（中等）: {backdoor_critical}处 (-{deduct}分)")
     elif backdoor_critical > 5:
-        deduct = 10
+        deduct = 20
         deductions += deduct
         risk_details.append(f"🚨 高危后门特征（轻微）: {backdoor_critical}处 (-{deduct}分)")
+    elif backdoor_critical > 0:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"🚨 高危后门特征（极少）: {backdoor_critical}处 (-{deduct}分)")
     
-    # 2. 代码混淆（base64长字符串等）
-    if obfuscation_critical > 30:
-        deduct = 25
+    # 2. 代码混淆（编辑器文件中多为正常代码）
+    if obfuscation_critical > 50:
+        deduct = 20
         deductions += deduct
         risk_details.append(f"🔒 代码混淆（严重）: {obfuscation_critical}处 (-{deduct}分)")
-    elif obfuscation_critical > 10:
+    elif obfuscation_critical > 30:
         deduct = 15
         deductions += deduct
         risk_details.append(f"🔒 代码混淆（中等）: {obfuscation_critical}处 (-{deduct}分)")
-    
-    # 3. 广告/统计追踪（最主要问题）
-    if tracking_ads > 50:
-        deduct = 25
-        deductions += deduct
-        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
-    elif tracking_ads > 20:
-        deduct = 15
-        deductions += deduct
-        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
-    elif tracking_ads > 0:
+    elif obfuscation_critical > 10:
         deduct = 5
         deductions += deduct
-        risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
+        risk_details.append(f"🔒 代码混淆（轻微）: {obfuscation_critical}处 (-{deduct}分)")
     
-    # 4. 敏感数据泄露（优化后应该很少）
-    if data_leak > 20:
+    # 3. 广告/统计追踪（主要清理目标，但安装脚本已处理）
+    if tracking_ads > 100:
         deduct = 20
         deductions += deduct
-        risk_details.append(f"🔐 数据泄露风险（严重）: {data_leak}处 (-{deduct}分)")
-    elif data_leak > 10:
+        risk_details.append(f"📊 广告统计（严重）: {tracking_ads}处 (-{deduct}分)")
+    elif tracking_ads > 50:
         deduct = 15
+        deductions += deduct
+        risk_details.append(f"📊 广告统计（中等）: {tracking_ads}处 (-{deduct}分)")
+    elif tracking_ads > 0:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"📊 广告统计（已在安装脚本中处理）: {tracking_ads}处 (-{deduct}分)")
+    
+    # 4. 敏感数据泄露（前端表单多为正常提交）
+    if data_leak > 50:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"🔐 数据泄露风险（严重）: {data_leak}处 (-{deduct}分)")
+    elif data_leak > 20:
+        deduct = 10
         deductions += deduct
         risk_details.append(f"🔐 数据泄露风险（中等）: {data_leak}处 (-{deduct}分)")
     elif data_leak > 0:
-        deduct = 10
+        deduct = 5
         deductions += deduct
         risk_details.append(f"🔐 数据泄露风险（轻微）: {data_leak}处 (-{deduct}分)")
     
     # 5. SQL注入风险
     if sql_injection_risk > 10:
+        deduct = 20
+        deductions += deduct
+        risk_details.append(f"🗄️ SQL注入风险（严重）: {sql_injection_risk}处 (-{deduct}分)")
+    elif sql_injection_risk > 0:
         deduct = 15
         deductions += deduct
         risk_details.append(f"🗄️ SQL注入风险: {sql_injection_risk}处 (-{deduct}分)")
     
-    # 6. 可疑域名（优化后应该很少）
-    if suspicious_domain > 10:
+    # 6. 可疑域名（少量可接受）
+    if suspicious_domain > 20:
         deduct = 15
         deductions += deduct
-        risk_details.append(f"🌍 可疑域名/IP请求: {suspicious_domain}处 (-{deduct}分)")
-    elif suspicious_domain > 0:
+        risk_details.append(f"🌍 可疑域名/IP请求（严重）: {suspicious_domain}处 (-{deduct}分)")
+    elif suspicious_domain > 10:
+        deduct = 10
+        deductions += deduct
+        risk_details.append(f"🌍 可疑域名/IP请求（中等）: {suspicious_domain}处 (-{deduct}分)")
+    elif suspicious_domain > 5:
         deduct = 5
         deductions += deduct
-        risk_details.append(f"🌍 可疑域名/IP请求: {suspicious_domain}处 (-{deduct}分)")
+        risk_details.append(f"🌍 可疑域名/IP请求（轻微）: {suspicious_domain}处 (-{deduct}分)")
     
-    # 7. 权限提升（优化后应该很少）
-    if privilege_escalation > 10:
-        deduct = 20
-        deductions += deduct
-        risk_details.append(f"🔓 权限提升（严重）: {privilege_escalation}处 (-{deduct}分)")
-    elif privilege_escalation > 5:
+    # 7. 权限提升（少量正常）
+    if privilege_escalation > 20:
         deduct = 15
         deductions += deduct
-        risk_details.append(f"🔓 权限提升（中等）: {privilege_escalation}处 (-{deduct}分)")
-    elif privilege_escalation > 0:
+        risk_details.append(f"🔓 权限提升（严重）: {privilege_escalation}处 (-{deduct}分)")
+    elif privilege_escalation > 10:
         deduct = 10
+        deductions += deduct
+        risk_details.append(f"🔓 权限提升（中等）: {privilege_escalation}处 (-{deduct}分)")
+    elif privilege_escalation > 5:
+        deduct = 5
         deductions += deduct
         risk_details.append(f"🔓 权限提升（轻微）: {privilege_escalation}处 (-{deduct}分)")
     
-    # 8. 危险函数（优化后应该很少）
+    # 8. 危险函数（非常少，轻微扣分）
     if dangerous_functions > 20:
         deduct = 15
         deductions += deduct
-        risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
+        risk_details.append(f"💀 危险函数（严重）: {dangerous_functions}处 (-{deduct}分)")
     elif dangerous_functions > 10:
         deduct = 10
         deductions += deduct
-        risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
+        risk_details.append(f"💀 危险函数（中等）: {dangerous_functions}处 (-{deduct}分)")
     elif dangerous_functions > 0:
-        deduct = 5
+        deduct = 3
         deductions += deduct
-        risk_details.append(f"💀 危险函数: {dangerous_functions}处 (-{deduct}分)")
+        risk_details.append(f"💀 危险函数（轻微）: {dangerous_functions}处 (-{deduct}分)")
     
     # 命令执行和远程连接是管理面板的核心功能，只在异常多时才扣分
     if command_execution > 500:
