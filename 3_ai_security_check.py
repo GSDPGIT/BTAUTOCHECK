@@ -213,37 +213,17 @@ def extract_and_analyze_files(zip_path, extract_dir):
         
         print(f"📊 总文件数: {len(all_files)}")
         
-        # 排除路径（减少误报）
-        exclude_patterns = [
-            'static/editor/',        # 代码编辑器（包含大量语法关键字）
-            'static/ckeditor/',      # 富文本编辑器
-            'static/js/echarts',     # 图表库
-            'static/js/vue',         # Vue框架
-            'static/js/polyfills',   # Polyfill库
-            'static/language/',      # 语言文件
-        ]
-        
-        # 严格模式：检查所有脚本、配置、可执行文件
+        # 严格模式：检查所有脚本、配置、可执行文件（不排除任何文件）
         check_extensions = (
-            '.sh', '.py', '.php', '.pl', '.json', 
+            '.sh', '.py', '.php', '.pl', '.js', '.json', 
             '.conf', '.cfg', '.ini', '.xml', '.yml', '.yaml',
-            '.sql'
+            '.html', '.htm', '.sql', '.c', '.cpp', '.go'
         )
         
-        print("\n正在读取文件内容...")
+        print("\n正在读取文件内容（全量检测，不排除任何文件）...")
         for i, file_name in enumerate(all_files, 1):
             if i % 100 == 0:
                 print(f"进度: {i}/{len(all_files)} ({i*100//len(all_files)}%)")
-            
-            # 跳过排除的文件
-            should_exclude = False
-            for pattern in exclude_patterns:
-                if pattern in file_name:
-                    should_exclude = True
-                    break
-            
-            if should_exclude:
-                continue
             
             file_path = os.path.join(extract_dir, file_name)
             
@@ -265,9 +245,8 @@ def extract_and_analyze_files(zip_path, extract_dir):
                     # 二进制文件或读取失败，跳过
                     pass
         
-        print(f"\n✅ 收集到 {len(files_to_check)} 个核心文件待分析")
-        print(f"   (已排除编辑器、前端库等低风险文件)")
-        print(f"\n   类型分布: ")
+        print(f"\n✅ 收集到 {len(files_to_check)} 个文件待分析（全量检测）")
+        print(f"   类型分布: ")
         
         # 统计文件类型
         type_count = {}
