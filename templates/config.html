@@ -240,7 +240,7 @@
     <div style="display: flex; gap: 1rem;">
         <button type="submit" class="btn btn-primary">💾 保存配置</button>
         <button type="button" onclick="testNotification()" class="btn btn-success">📨 测试通知</button>
-        <button type="button" onclick="testAI()" class="btn btn-secondary">🤖 测试AI</button>
+        <button type="button" onclick="testAI(event)" class="btn btn-secondary">🤖 测试AI</button>
     </div>
 </form>
 
@@ -281,19 +281,25 @@ function testNotification() {
     });
 }
 
-function testAI() {
+function testAI(event) {
     if (!confirm('确定要测试AI连接吗？\n这将调用已配置的AI进行测试分析。')) {
         return;
     }
     
     // 显示加载中
-    const originalText = event.target.textContent;
-    event.target.textContent = '测试中...';
-    event.target.disabled = true;
+    const btn = event ? event.target : null;
+    const originalText = btn ? btn.textContent : '';
+    
+    if (btn) {
+        btn.textContent = '测试中...';
+        btn.disabled = true;
+    }
     
     ajaxPost('{{ url_for("test_ai") }}', {}, function(data) {
-        event.target.textContent = originalText;
-        event.target.disabled = false;
+        if (btn) {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
         
         if (data.success) {
             alert(data.message);
