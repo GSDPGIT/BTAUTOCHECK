@@ -164,8 +164,8 @@ def config_management():
             enabled_key = f'{provider}_enabled'
             apikey_key = f'{provider}_api_key'
             
-            if enabled_key in request.form:
-                config['ai_providers'][provider]['enabled'] = request.form.get(enabled_key) == 'on'
+            # 修复：复选框未勾选时也要保存false状态
+            config['ai_providers'][provider]['enabled'] = request.form.get(enabled_key) == 'on'
             
             # 处理API Key
             apikey_value = request.form.get(apikey_key, '')
