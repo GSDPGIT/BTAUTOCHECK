@@ -1,6 +1,6 @@
 {
     "gemini_api_key": "YOUR_GEMINI_API_KEY_HERE",
-    "github_username": "GSDPGIT",
+    "github_username": "your_github_username",
     "github_repo": "bt-panel-files",
     "github_token": "",
     "check_interval_hours": 24,
@@ -10,10 +10,41 @@
     "notification_enabled": true,
     "auto_upload": false,
     "security_threshold": 80,
-    "_comments": {
-        "gemini_api_key": "从 https://aistudio.google.com/app/apikey 获取",
-        "auto_upload": "true=自动推送到GitHub, false=需手动推送（推荐）",
-        "security_threshold": "安全评分阈值，低于此分数需人工审查"
+    "notifications": {
+        "email": {
+            "enabled": false,
+            "smtp_server": "smtp.example.com",
+            "smtp_port": 587,
+            "smtp_user": "your_email@example.com",
+            "smtp_password": "your_password",
+            "from_addr": "your_email@example.com",
+            "to_addrs": ["admin@example.com"],
+            "use_tls": true
+        },
+        "webhook": {
+            "enabled": false,
+            "url": "https://your-webhook-url.com/hook",
+            "method": "POST",
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        },
+        "serverchan": {
+            "enabled": false,
+            "sendkey": "YOUR_SERVERCHAN_SENDKEY",
+            "comment": "从 https://sct.ftqq.com/ 获取"
+        },
+        "bark": {
+            "enabled": false,
+            "server": "https://api.day.app",
+            "device_key": "YOUR_BARK_KEY",
+            "comment": "从Bark App获取"
+        },
+        "telegram": {
+            "enabled": false,
+            "bot_token": "YOUR_BOT_TOKEN",
+            "chat_id": "YOUR_CHAT_ID",
+            "comment": "从 @BotFather 创建机器人获取"
+        }
     }
 }
-

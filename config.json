@@ -9,6 +9,39 @@
     "current_version": "11.2.0",
     "notification_enabled": true,
     "auto_upload": false,
-    "security_threshold": 80
+    "security_threshold": 80,
+    "notifications": {
+        "email": {
+            "enabled": false,
+            "smtp_server": "smtp.example.com",
+            "smtp_port": 587,
+            "smtp_user": "your_email@example.com",
+            "smtp_password": "your_password",
+            "from_addr": "your_email@example.com",
+            "to_addrs": ["admin@example.com"],
+            "use_tls": true
+        },
+        "webhook": {
+            "enabled": false,
+            "url": "https://your-webhook-url.com/hook",
+            "method": "POST",
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        },
+        "serverchan": {
+            "enabled": false,
+            "sendkey": "YOUR_SERVERCHAN_SENDKEY"
+        },
+        "bark": {
+            "enabled": false,
+            "server": "https://api.day.app",
+            "device_key": "YOUR_BARK_KEY"
+        },
+        "telegram": {
+            "enabled": false,
+            "bot_token": "YOUR_BOT_TOKEN",
+            "chat_id": "YOUR_CHAT_ID"
+        }
+    }
 }
-
