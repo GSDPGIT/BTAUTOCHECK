@@ -88,14 +88,13 @@ MALICIOUS_PATTERNS = {
         r'/tongji/',
     ],
     
-    # 🔐 敏感数据泄露
+    # 🔐 敏感数据泄露（精确检测）
     'data_leak': [
-        r'curl.*-d.*username',
-        r'curl.*-d.*password',
-        r'file_get_contents.*username',
-        r'password.*http',
-        r'token.*http',
-        r'apikey.*http',
+        r'curl.*-d.*(?:username|user)=',  # curl传输用户名
+        r'curl.*-d.*password=',  # curl传输密码
+        r'requests\.post.*password',  # Python requests传输密码
+        r'file_get_contents.*password',  # PHP读取包含密码的URL
+        r'(?:token|apikey|api_key)=.*[&\s].*http',  # Token跟随HTTP请求
     ],
     
     # 🌍 可疑域名/IP（只检测实际的HTTP请求）
@@ -123,14 +122,13 @@ MALICIOUS_PATTERNS = {
         r'execute.*\$_POST',
     ],
     
-    # 🔓 权限提升
+    # 🔓 权限提升（只检测真正危险的操作）
     'privilege_escalation': [
-        r'chmod\s+777',
-        r'chown\s+root',
-        r'sudo\s+',
-        r'su\s+-',
-        r'setuid',
-        r'setgid',
+        r'chmod\s+777.*(?:\/etc|\/bin|\/sbin|\/usr\/bin)',  # 只检测系统关键目录的777权限
+        r'chown\s+root.*(?:\/tmp|\/var\/tmp)',  # 临时目录改为root所有
+        r'sudo\s+(?:rm|dd|mkfs)',  # sudo执行危险命令
+        r'setuid\s*\(\s*0\s*\)',  # 设置为root uid
+        r'setgid\s*\(\s*0\s*\)',  # 设置为root gid
     ],
     
     # 💀 危险函数
@@ -413,15 +411,19 @@ def static_code_analysis(files_info, version):
         deductions += deduct
         risk_details.append(f"📊 广告统计: {tracking_ads}处 (-{deduct}分)")
     
-    # 4. 敏感数据泄露（适度扣分）
-    if data_leak > 100:
+    # 4. 敏感数据泄露（优化后应该很少）
+    if data_leak > 20:
         deduct = 20
         deductions += deduct
-        risk_details.append(f"🔐 数据泄露风险: {data_leak}处 (-{deduct}分)")
-    elif data_leak > 50:
+        risk_details.append(f"🔐 数据泄露风险（严重）: {data_leak}处 (-{deduct}分)")
+    elif data_leak > 10:
+        deduct = 15
+        deductions += deduct
+        risk_details.append(f"🔐 数据泄露风险（中等）: {data_leak}处 (-{deduct}分)")
+    elif data_leak > 0:
         deduct = 10
         deductions += deduct
-        risk_details.append(f"🔐 数据泄露风险: {data_leak}处 (-{deduct}分)")
+        risk_details.append(f"🔐 数据泄露风险（轻微）: {data_leak}处 (-{deduct}分)")
     
     # 5. SQL注入风险
     if sql_injection_risk > 10:
@@ -439,15 +441,19 @@ def static_code_analysis(files_info, version):
         deductions += deduct
         risk_details.append(f"🌍 可疑域名/IP请求: {suspicious_domain}处 (-{deduct}分)")
     
-    # 7. 权限提升（适度扣分）
-    if privilege_escalation > 30:
+    # 7. 权限提升（优化后应该很少）
+    if privilege_escalation > 10:
+        deduct = 20
+        deductions += deduct
+        risk_details.append(f"🔓 权限提升（严重）: {privilege_escalation}处 (-{deduct}分)")
+    elif privilege_escalation > 5:
         deduct = 15
         deductions += deduct
-        risk_details.append(f"🔓 权限提升: {privilege_escalation}处 (-{deduct}分)")
-    elif privilege_escalation > 20:
+        risk_details.append(f"🔓 权限提升（中等）: {privilege_escalation}处 (-{deduct}分)")
+    elif privilege_escalation > 0:
         deduct = 10
         deductions += deduct
-        risk_details.append(f"🔓 权限提升: {privilege_escalation}处 (-{deduct}分)")
+        risk_details.append(f"🔓 权限提升（轻微）: {privilege_escalation}处 (-{deduct}分)")
     
     # 8. 危险函数（优化后应该很少）
     if dangerous_functions > 20:

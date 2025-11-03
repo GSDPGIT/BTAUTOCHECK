@@ -11,122 +11,198 @@ import sys
 from datetime import datetime
 
 def generate_markdown_report(result_data):
-    """生成Markdown格式的检测报告"""
+    """生成详细的Markdown格式检测报告"""
     version = result_data['version']
     md5 = result_data['md5']
     basic_check = result_data.get('basic_check', {})
     static_analysis = result_data.get('static_analysis', {})
+    category_stats = static_analysis.get('category_stats', {})
+    findings = static_analysis.get('findings', {})
     
-    report = f"""# BT-Panel {version} 安全检测报告
+    # 分类名称和说明
+    category_info = {
+        'backdoor_critical': {
+            'name': '🚨 高危后门特征',
+            'severity': '严重',
+            'desc': 'eval($var)、assert($var)等动态代码执行，可能被利用执行任意代码'
+        },
+        'command_execution': {
+            'name': '🔧 系统命令执行',
+            'severity': '正常',
+            'desc': '管理面板需要执行系统命令来管理服务器，这是正常功能'
+        },
+        'remote_connection': {
+            'name': '🌐 远程连接',
+            'severity': '正常',
+            'desc': '管理面板需要建立网络连接进行更新、插件下载等，这是正常功能'
+        },
+        'obfuscation_critical': {
+            'name': '🔒 代码混淆/加密',
+            'severity': '中等',
+            'desc': 'Base64长字符串解码、gzinflate等，可能用于隐藏恶意代码'
+        },
+        'tracking_ads': {
+            'name': '📊 广告/统计追踪',
+            'severity': '严重',
+            'desc': '向bt.cn、io.bt.sb等域名发送统计数据，可能泄露用户隐私'
+        },
+        'data_leak': {
+            'name': '🔐 敏感数据泄露',
+            'severity': '严重',
+            'desc': '密码、Token等敏感数据通过HTTP传输，存在泄露风险'
+        },
+        'suspicious_domain': {
+            'name': '🌍 可疑域名/IP',
+            'severity': '中等',
+            'desc': '直接通过IP地址或可疑域名进行HTTP请求'
+        },
+        'file_transfer': {
+            'name': '📤 文件传输',
+            'severity': '正常',
+            'desc': '管理面板需要下载/上传文件，这是正常功能'
+        },
+        'sql_injection_risk': {
+            'name': '🗄️ SQL注入风险',
+            'severity': '严重',
+            'desc': '直接将用户输入($_GET/$_POST)拼接到SQL查询，存在注入风险'
+        },
+        'privilege_escalation': {
+            'name': '🔓 权限提升',
+            'severity': '中等',
+            'desc': 'chmod 777、sudo等权限操作，可能存在权限滥用风险'
+        },
+        'dangerous_functions': {
+            'name': '💀 危险函数',
+            'severity': '严重',
+            'desc': 'unserialize($_GET)、extract($_POST)等，可能导致代码执行'
+        }
+    }
+    
+    # 生成报告
+    report = f"""# 🔍 BT-Panel {version} 安全检测报告（详细版）
 
 > **检测时间**: {result_data.get('check_time', 'N/A')}  
 > **检测版本**: Linux Panel {version}  
-> **检测状态**: {'✅ 通过' if static_analysis.get('is_safe', False) else '⚠️ 需审查'}
+> **安全评分**: {static_analysis.get('security_score', 0)}/100  
+> **检测状态**: {'✅ 通过' if static_analysis.get('is_safe', False) else '⚠️ 需审查'}  
+> **检测文件数**: {result_data.get('files_analyzed', 0)} 个
 
 ---
 
-## 📦 文件信息
+## 📦 文件基本信息
 
 | 项目 | 信息 |
 |------|------|
 | 文件名 | `{result_data['filename']}` |
 | MD5 | `{md5}` |
 | 文件大小 | {basic_check.get('size_mb', 0)} MB |
-| 文件数量 | {basic_check.get('file_count', 0)} 个 |
+| 压缩包文件数 | {basic_check.get('file_count', 0)} 个 |
+| 实际分析文件数 | {result_data.get('files_analyzed', 0)} 个 |
 | 下载来源 | {result_data['download_url']} |
 
 ---
 
-## 🔍 基础安全检查
+## 📊 安全评分总览
 
-| 检查项 | 结果 |
-|--------|------|
-| 文件完整性 | {'✅ 通过' if basic_check.get('is_valid_zip', False) else '❌ 失败'} |
-| ZIP有效性 | {'✅ 有效' if basic_check.get('is_valid_zip', False) else '❌ 无效'} |
-| 可疑文件数 | {len(basic_check.get('suspicious_files', []))} 个 |
+**综合评分**: {static_analysis.get('security_score', 0)}/100
+
+**扣分明细**:
 """
     
-    if basic_check.get('suspicious_files'):
-        report += "\n### ⚠️ 发现的可疑文件\n\n"
-        for file in basic_check['suspicious_files'][:10]:
-            report += f"- `{file}`\n"
+    # 扣分详情
+    deduction_map = {
+        'backdoor_critical': (28, 20),
+        'obfuscation_critical': (13, 15),
+        'tracking_ads': (47, 15),
+        'data_leak': (140, 20),
+        'suspicious_domain': (4, 5),
+        'privilege_escalation': (48, 15),
+        'dangerous_functions': (2, 5),
+    }
     
-    report += "\n---\n\n## 🛡️ 静态安全分析（规则引擎）\n\n"
+    for cat, (count, deduct) in deduction_map.items():
+        if category_stats.get(cat, 0) > 0:
+            info = category_info.get(cat, {})
+            report += f"- {info.get('name', cat)}: {category_stats.get(cat, 0)}处 → **-{deduct}分** ({info.get('severity', '未知')})\n"
     
-    score = static_analysis.get('security_score', 0)
-    is_safe = static_analysis.get('is_safe', False)
+    report += "\n**正常功能（不扣分）**:\n"
+    report += f"- 🔧 命令执行: {category_stats.get('command_execution', 0)}处 (管理面板必需功能)\n"
+    report += f"- 🌐 远程连接: {category_stats.get('remote_connection', 0)}处 (管理面板必需功能)\n"
+    report += f"- 📤 文件传输: {category_stats.get('file_transfer', 0)}处 (管理面板必需功能)\n"
     
-    report += f"### 安全评分: {score}/100\n\n"
-    report += f"**结论**: {'✅ 安全可用' if is_safe else '⚠️ 需要审查'}\n\n"
+    report += "\n---\n\n"
+    report += f"## 🔍 详细检测结果\n\n"
+    report += f"**总问题数**: {static_analysis.get('total_issues', 0)}  \n"
+    report += f"**风险文件数**: {static_analysis.get('risky_files', 0)}/{result_data.get('files_analyzed', 0)}\n\n"
     
-    # 统计信息
-    report += f"**检测统计**:\n"
-    report += f"- 总问题数: {static_analysis.get('total_issues', 0)}\n"
-    report += f"- 风险文件数: {static_analysis.get('risky_files', 0)}/{result_data.get('files_analyzed', 0)}\n\n"
+    # 按严重程度排序显示
+    priority_order = [
+        'backdoor_critical',
+        'obfuscation_critical', 
+        'sql_injection_risk',
+        'dangerous_functions',
+        'tracking_ads',
+        'data_leak',
+        'privilege_escalation',
+        'suspicious_domain',
+        'file_transfer',
+        'remote_connection',
+        'command_execution'
+    ]
     
-    # 详细发现
-    findings = static_analysis.get('findings', {})
-    if any(findings.values()):
-        report += "### 检测发现详情\n\n"
+    for category in priority_order:
+        items = findings.get(category, [])
+        if not items:
+            continue
         
-        category_names = {
-            'backdoor': '🚨 后门特征',
-            'remote_connection': '🌐 远程连接',
-            'obfuscation': '🔒 代码混淆',
-            'file_operation': '📁 文件操作',
-            'database': '🗄️ 数据库操作',
-            'upload_download': '⬆️ 上传下载',
-            'tracking': '📊 广告统计'
-        }
+        info = category_info.get(category, {})
+        count = len(items)
         
-        for category, items in findings.items():
-            if items:
-                report += f"\n**{category_names.get(category, category)}** ({len(items)} 处)\n\n"
-                for item in items[:5]:  # 只显示前5个
-                    report += f"- `{item['file']}`: {item['matches']} 处匹配\n"
-                if len(items) > 5:
-                    report += f"- ... 还有 {len(items) - 5} 个文件\n"
+        report += f"\n### {info.get('name', category)} ({count} 处)\n\n"
+        report += f"**严重程度**: {info.get('severity', '未知')}  \n"
+        report += f"**说明**: {info.get('desc', '暂无说明')}\n\n"
+        
+        # 列出所有文件（不省略）
+        report += f"<details>\n<summary>点击展开查看所有 {count} 个文件</summary>\n\n"
+        
+        for i, item in enumerate(items, 1):
+            report += f"{i}. **{item['file']}** (匹配{item['matches']}处)\n"
+            report += f"   - 匹配规则: `{item['pattern']}`\n"
+            
+            # 显示代码样本
+            if item.get('samples'):
+                report += f"   - 样本: "
+                for j, sample in enumerate(item['samples'][:2], 1):
+                    if j > 1:
+                        report += ", "
+                    report += f"`{sample}`"
                 report += "\n"
+            report += "\n"
+        
+        report += "</details>\n\n"
+    
+    # 安全建议
+    report += "---\n\n## 💡 安全建议\n\n"
     
     if static_analysis.get('recommendations'):
-        report += "### 安全建议\n\n"
-        for rec in static_analysis['recommendations']:
-            report += f"- {rec}\n"
-        report += "\n"
+        for i, rec in enumerate(static_analysis['recommendations'], 1):
+            report += f"{i}. {rec}\n"
     
-    if static_analysis.get('files_to_remove'):
-        report += "### 建议移除的文件\n\n"
-        for file in list(set(static_analysis['files_to_remove']))[:20]:
-            report += f"- `{file}`\n"
-        if len(static_analysis['files_to_remove']) > 20:
-            report += f"- ... 还有 {len(static_analysis['files_to_remove']) - 20} 个文件\n"
-        report += "\n"
+    # 总结
+    report += "\n---\n\n## 📋 检测总结\n\n"
+    report += f"{static_analysis.get('summary', '无总结')}\n\n"
     
-    if static_analysis.get('summary'):
-        report += f"### 总结\n\n{static_analysis['summary']}\n\n"
-    
-    report += "---\n\n"
-    report += f"## 📊 检测统计\n\n"
+    # 检测信息
+    report += "---\n\n## ℹ️ 检测信息\n\n"
     report += f"- **分析文件数**: {result_data.get('files_analyzed', 0)}\n"
     report += f"- **检测方式**: 基础检查 + 静态规则分析\n"
-    report += f"- **检测工具**: Python脚本 + 规则引擎\n"
+    report += f"- **检测工具**: Python脚本 + 规则引擎（11类检测）\n"
     report += f"- **检测日期**: {result_data.get('check_time', 'N/A')}\n"
+    report += f"- **报告生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
     
     report += "\n---\n\n"
-    report += f"## ✅ 检测结论\n\n"
-    
-    if static_analysis.get('is_safe', False) and static_analysis.get('security_score', 0) >= 95:
-        report += f"✅ **通过检测**\n\n"
-        report += f"此版本（{version}）经过静态规则分析，未发现明显的安全风险，建议可以使用。\n\n"
-        report += f"**MD5**: `{md5}`\n\n"
-        report += "**下一步**: 运行 5_update_and_upload.py 自动更新并上传到GitHub\n"
-    else:
-        report += f"⚠️ **需要人工审查**\n\n"
-        report += f"建议进行详细的人工安全审查后再决定是否使用。\n"
-    
-    report += "\n---\n\n"
-    report += f"**报告生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n"
-    report += f"**自动化系统**: BT-Panel Auto-Update System V1.0\n"
+    report += f"**自动化系统**: BTAUTOCHECK V1.0  \n"
+    report += f"**GitHub**: https://github.com/GSDPGIT/BTAUTOCHECK\n"
     
     return report
 
