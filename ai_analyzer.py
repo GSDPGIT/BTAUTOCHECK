@@ -124,6 +124,8 @@ class AIAnalyzer:
                 return self._call_kimi(prompt, provider_config)
             elif provider_name == 'xunfei':
                 return self._call_xunfei(prompt, provider_config)
+            elif provider_name == 'grok':
+                return self._call_grok(prompt, provider_config)
             else:
                 print(f"❌ 未知的AI提供商: {provider_name}")
                 return None
@@ -366,6 +368,35 @@ class AIAnalyzer:
         print("⚠️  讯飞星火需要WebSocket实现，当前版本暂不支持")
         print("   建议使用其他AI提供商")
         return None
+    
+    def _call_grok(self, prompt, config):
+        """调用xAI Grok"""
+        api_key = config.get('api_key')
+        model = config.get('model', 'grok-beta')
+        
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "你是一个专业的代码安全审计专家。"},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3
+        }
+        
+        response = requests.post('https://api.x.ai/v1/chat/completions',
+                               headers=headers, json=payload, timeout=60)
+        if response.status_code == 200:
+            data = response.json()
+            text = data['choices'][0]['message']['content']
+            return self._parse_ai_response(text, 'grok')
+        else:
+            print(f"❌ Grok API错误: {response.status_code}")
+            return None
     
     def _parse_ai_response(self, text, provider):
         """解析AI响应"""

@@ -16,6 +16,7 @@ BTAUTOCHECK V2.0 支持9种主流AI模型进行深度安全分析，您可以根
 | **智谱GLM** | 智谱AI | 开源友好 | 国内用户 | 免费+付费 |
 | **DeepSeek** | DeepSeek | 高性价比 | 成本敏感 | 低价 |
 | **Kimi** | 月之暗面 | 长文本 | 大文件分析 | 免费+付费 |
+| **Grok** | xAI | Elon Musk出品 | X用户 | 付费 |
 | **讯飞星火** | 科大讯飞 | 国产替代 | 政企用户 | 付费 |
 
 ---
@@ -259,7 +260,35 @@ python3 ai_analyzer.py test
 
 ---
 
-### 9️⃣ 讯飞星火
+### 9️⃣ xAI Grok
+
+**优点**：
+- ✅ Elon Musk团队开发
+- ✅ 强大且有趣
+- ✅ 实时数据访问
+
+**配置**：
+
+```json
+"grok": {
+    "enabled": true,
+    "api_key": "xai-...",
+    "model": "grok-beta"
+}
+```
+
+**获取API Key**：
+1. 访问：https://x.ai/api
+2. 申请API访问权限
+3. 创建API Key
+
+**模型选择**：
+- `grok-beta` - 当前版本
+- `grok-1` - 第一代
+
+---
+
+### 🔟 讯飞星火
 
 **优点**：
 - ✅ 国产可控

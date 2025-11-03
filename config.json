@@ -74,6 +74,12 @@
             "api_secret": "YOUR_XUNFEI_API_SECRET",
             "model": "generalv3.5",
             "api_url": "wss://spark-api.xf-yun.com/v3.5/chat"
+        },
+        "grok": {
+            "enabled": false,
+            "api_key": "YOUR_XAI_API_KEY",
+            "model": "grok-beta",
+            "api_url": "https://api.x.ai/v1/chat/completions"
         }
     },
     "notifications": {

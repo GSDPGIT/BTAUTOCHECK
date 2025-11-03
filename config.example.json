@@ -74,6 +74,12 @@
             "api_secret": "YOUR_API_SECRET",
             "model": "generalv3.5",
             "comment": "讯飞星火 - 国产可控（当前版本暂不支持WebSocket）"
+        },
+        "grok": {
+            "enabled": false,
+            "api_key": "xai-...",
+            "model": "grok-beta",
+            "comment": "xAI Grok - Elon Musk的AI，强大且幽默。获取: https://x.ai/api"
         }
     },
     "notifications": {
