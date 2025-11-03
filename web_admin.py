@@ -156,7 +156,7 @@ def config_management():
         config['ai_providers']['fallback_enabled'] = request.form.get('fallback_enabled') == 'on'
         
         # 更新各AI的配置
-        ai_providers = ['gemini', 'openai', 'claude', 'qianwen', 'grok']
+        ai_providers = ['gemini', 'openai', 'claude', 'qianwen', 'grok', 'wenxin', 'zhipu', 'deepseek', 'kimi', 'xunfei']
         for provider in ai_providers:
             if provider not in config['ai_providers']:
                 config['ai_providers'][provider] = {}
@@ -167,9 +167,26 @@ def config_management():
             if enabled_key in request.form:
                 config['ai_providers'][provider]['enabled'] = request.form.get(enabled_key) == 'on'
             
+            # 处理API Key
             apikey_value = request.form.get(apikey_key, '')
             if apikey_value and apikey_value.strip():
                 config['ai_providers'][provider]['api_key'] = apikey_value.strip()
+            
+            # 特殊处理文心一言的secret_key
+            if provider == 'wenxin':
+                secret_key_value = request.form.get('wenxin_secret_key', '')
+                if secret_key_value and secret_key_value.strip():
+                    config['ai_providers']['wenxin']['secret_key'] = secret_key_value.strip()
+            
+            # 特殊处理讯飞星火的多个字段
+            if provider == 'xunfei':
+                app_id_value = request.form.get('xunfei_app_id', '')
+                if app_id_value and app_id_value.strip():
+                    config['ai_providers']['xunfei']['app_id'] = app_id_value.strip()
+                
+                api_secret_value = request.form.get('xunfei_api_secret', '')
+                if api_secret_value and api_secret_value.strip():
+                    config['ai_providers']['xunfei']['api_secret'] = api_secret_value.strip()
         
         # 更新通知配置
         if 'serverchan_enabled' in request.form:

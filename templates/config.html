@@ -159,8 +159,61 @@
             <small style="margin-left: 0.5rem;">启用Grok (xAI)</small>
         </div>
         
-        <p style="margin-top: 1rem; color: #868e96; font-size: 0.9rem;">
-            💡 更多AI配置（DeepSeek、Kimi、文心一言等）请直接编辑 config.json 或查看 <a href="https://github.com/GSDPGIT/BTAUTOCHECK/blob/main/AI_SETUP_GUIDE.md" target="_blank" style="color: #667eea;">AI配置指南</a>
+        <div class="form-group">
+            <label>文心一言 API Key</label>
+            <input type="text" name="wenxin_api_key" value="{{ config.ai_providers.wenxin.api_key if config.ai_providers.wenxin.api_key and not config.ai_providers.wenxin.api_key.startswith('YOUR_') else '' }}" placeholder="百度文心API Key">
+            <input type="text" name="wenxin_secret_key" value="{{ config.ai_providers.wenxin.secret_key if config.ai_providers.wenxin.secret_key and not config.ai_providers.wenxin.secret_key.startswith('YOUR_') else '' }}" placeholder="Secret Key" style="margin-top: 0.5rem;">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="wenxin_enabled" {% if config.ai_providers.wenxin.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用文心一言</small>
+        </div>
+        
+        <div class="form-group">
+            <label>智谱GLM API Key</label>
+            <input type="text" name="zhipu_api_key" value="{{ config.ai_providers.zhipu.api_key if config.ai_providers.zhipu.api_key and not config.ai_providers.zhipu.api_key.startswith('YOUR_') else '' }}" placeholder="YOUR_API_KEY.xxx">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="zhipu_enabled" {% if config.ai_providers.zhipu.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用智谱GLM</small>
+        </div>
+        
+        <div class="form-group">
+            <label>DeepSeek API Key</label>
+            <input type="text" name="deepseek_api_key" value="{{ config.ai_providers.deepseek.api_key if config.ai_providers.deepseek.api_key and not config.ai_providers.deepseek.api_key.startswith('YOUR_') else '' }}" placeholder="sk-...">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="deepseek_enabled" {% if config.ai_providers.deepseek.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用DeepSeek</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Kimi API Key</label>
+            <input type="text" name="kimi_api_key" value="{{ config.ai_providers.kimi.api_key if config.ai_providers.kimi.api_key and not config.ai_providers.kimi.api_key.startswith('YOUR_') else '' }}" placeholder="sk-...">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="kimi_enabled" {% if config.ai_providers.kimi.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用Kimi（月之暗面）</small>
+        </div>
+        
+        <div class="form-group">
+            <label>讯飞星火 配置</label>
+            <input type="text" name="xunfei_app_id" value="{{ config.ai_providers.xunfei.app_id if config.ai_providers.xunfei.app_id and not config.ai_providers.xunfei.app_id.startswith('YOUR_') else '' }}" placeholder="App ID" style="margin-bottom: 0.5rem;">
+            <input type="text" name="xunfei_api_key" value="{{ config.ai_providers.xunfei.api_key if config.ai_providers.xunfei.api_key and not config.ai_providers.xunfei.api_key.startswith('YOUR_') else '' }}" placeholder="API Key" style="margin-bottom: 0.5rem;">
+            <input type="text" name="xunfei_api_secret" value="{{ config.ai_providers.xunfei.api_secret if config.ai_providers.xunfei.api_secret and not config.ai_providers.xunfei.api_secret.startswith('YOUR_') else '' }}" placeholder="API Secret">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="xunfei_enabled" {% if config.ai_providers.xunfei.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用讯飞星火（需WebSocket支持）</small>
+        </div>
+        
+        <p style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 5px; color: #495057; font-size: 0.9rem;">
+            💡 <b>提示</b>: 各AI模型的API Key获取方法请查看 <a href="https://github.com/GSDPGIT/BTAUTOCHECK/blob/main/AI_SETUP_GUIDE.md" target="_blank" style="color: #667eea;">AI配置指南</a>
         </p>
     </div>
     
