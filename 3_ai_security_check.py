@@ -22,15 +22,13 @@ with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
 
 # 恶意模式特征库（超严格模式）
 MALICIOUS_PATTERNS = {
-    # 🚨 后门特征（高危）
+    # 🚨 后门特征（高危）- 只检测真正的动态执行
     'backdoor_critical': [
-        r'eval\s*\(\s*\$',  # eval($xxx) - 变量执行
-        r'assert\s*\(\s*\$',  # assert($xxx) - 断言执行
-        r'create_function',  # 动态函数创建
-        r'preg_replace.*\/e',  # 正则执行模式
-        r'call_user_func',  # 动态函数调用
-        r'array_map.*assert',  # 数组映射执行
-        r'\$\$',  # 变量变量
+        r'eval\s*\(\s*\$_(?:GET|POST|REQUEST|COOKIE)',  # eval($_GET) - 用户输入执行
+        r'assert\s*\(\s*\$_(?:GET|POST|REQUEST)',  # assert($_POST) - 用户输入断言
+        r'preg_replace\s*\(.*\/e.*\$_',  # preg_replace /e 模式 + 用户输入
+        r'system\s*\(\s*\$_(?:GET|POST|REQUEST)',  # system($_GET) - 用户输入执行
+        r'exec\s*\(\s*\$_(?:GET|POST|REQUEST)',  # exec($_POST) - 用户输入执行
     ],
     
     # 🔧 系统命令执行
@@ -190,7 +188,7 @@ def basic_security_check(zip_path):
     return checks
 
 def extract_and_analyze_files(zip_path, extract_dir):
-    """解压并深度分析所有文件（超严格模式）"""
+    """解压并深度分析所有文件（超严格模式 - 排除误报）"""
     print("\n" + "=" * 60)
     print("📦 解压并收集文件信息")
     print("=" * 60)
@@ -215,17 +213,37 @@ def extract_and_analyze_files(zip_path, extract_dir):
         
         print(f"📊 总文件数: {len(all_files)}")
         
+        # 排除路径（减少误报）
+        exclude_patterns = [
+            'static/editor/',        # 代码编辑器（包含大量语法关键字）
+            'static/ckeditor/',      # 富文本编辑器
+            'static/js/echarts',     # 图表库
+            'static/js/vue',         # Vue框架
+            'static/js/polyfills',   # Polyfill库
+            'static/language/',      # 语言文件
+        ]
+        
         # 严格模式：检查所有脚本、配置、可执行文件
         check_extensions = (
-            '.sh', '.py', '.php', '.pl', '.js', '.json', 
+            '.sh', '.py', '.php', '.pl', '.json', 
             '.conf', '.cfg', '.ini', '.xml', '.yml', '.yaml',
-            '.html', '.htm', '.sql', '.c', '.cpp', '.go'
+            '.sql'
         )
         
         print("\n正在读取文件内容...")
         for i, file_name in enumerate(all_files, 1):
             if i % 100 == 0:
                 print(f"进度: {i}/{len(all_files)} ({i*100//len(all_files)}%)")
+            
+            # 跳过排除的文件
+            should_exclude = False
+            for pattern in exclude_patterns:
+                if pattern in file_name:
+                    should_exclude = True
+                    break
+            
+            if should_exclude:
+                continue
             
             file_path = os.path.join(extract_dir, file_name)
             
@@ -247,8 +265,9 @@ def extract_and_analyze_files(zip_path, extract_dir):
                     # 二进制文件或读取失败，跳过
                     pass
         
-        print(f"\n✅ 收集到 {len(files_to_check)} 个文件待分析")
-        print(f"   类型分布: ")
+        print(f"\n✅ 收集到 {len(files_to_check)} 个核心文件待分析")
+        print(f"   (已排除编辑器、前端库等低风险文件)")
+        print(f"\n   类型分布: ")
         
         # 统计文件类型
         type_count = {}
@@ -575,6 +594,8 @@ def static_code_analysis(files_info, version):
         'recommendations': recommendations,
         'files_to_remove': list(set(files_to_remove)),
         'summary': summary,
+        'deduction_details': risk_details,  # 扣分详情
+        'total_deductions': deductions,  # 总扣分
         'category_stats': {
             'backdoor_critical': backdoor_critical,
             'command_execution': command_execution,

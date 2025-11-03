@@ -104,26 +104,20 @@ def generate_markdown_report(result_data):
 
 ## 📊 安全评分总览
 
-**综合评分**: {static_analysis.get('security_score', 0)}/100
+**综合评分**: {static_analysis.get('security_score', 0)}/100  
+**总扣分**: {static_analysis.get('total_deductions', 0)}分
 
 **扣分明细**:
 """
     
-    # 扣分详情
-    deduction_map = {
-        'backdoor_critical': (28, 20),
-        'obfuscation_critical': (13, 15),
-        'tracking_ads': (47, 15),
-        'data_leak': (140, 20),
-        'suspicious_domain': (4, 5),
-        'privilege_escalation': (48, 15),
-        'dangerous_functions': (2, 5),
-    }
+    # 使用实际的扣分详情（从静态分析结果读取）
+    deduction_details = static_analysis.get('deduction_details', [])
     
-    for cat, (count, deduct) in deduction_map.items():
-        if category_stats.get(cat, 0) > 0:
-            info = category_info.get(cat, {})
-            report += f"- {info.get('name', cat)}: {category_stats.get(cat, 0)}处 → **-{deduct}分** ({info.get('severity', '未知')})\n"
+    if deduction_details:
+        for detail in deduction_details:
+            report += f"- {detail}\n"
+    else:
+        report += "- 无扣分记录\n"
     
     report += "\n**正常功能（不扣分）**:\n"
     report += f"- 🔧 命令执行: {category_stats.get('command_execution', 0)}处 (管理面板必需功能)\n"
