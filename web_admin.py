@@ -123,6 +123,10 @@ def dashboard():
     secure_config = SecureConfig()
     config = secure_config.load_config()
     
+    # 确保scheduler字段存在
+    if 'scheduler' not in config:
+        config['scheduler'] = {'enabled': True, 'interval_hours': 1}
+    
     # 统计信息
     stats = {
         'current_version': config.get('current_version', 'Unknown'),
@@ -229,6 +233,23 @@ def config_management():
         return jsonify({'success': True, 'message': '配置已保存，调度器已更新'})
     
     config = secure_config.load_config()
+    
+    # 确保所有必需的字段都存在（避免模板渲染错误）
+    if 'scheduler' not in config:
+        config['scheduler'] = {'enabled': True, 'interval_hours': 1}
+    
+    if 'github_username' not in config:
+        config['github_username'] = ''
+    
+    if 'github_repo' not in config:
+        config['github_repo'] = ''
+    
+    if 'github_token' not in config:
+        config['github_token'] = ''
+    
+    if 'auto_upload' not in config:
+        config['auto_upload'] = False
+    
     return render_template('config.html', config=config)
 
 @app.route('/backups')
