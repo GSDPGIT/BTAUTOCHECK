@@ -9,6 +9,6 @@
     "current_version": "11.2.0",
     "notification_enabled": true,
     "auto_upload": false,
-    "security_threshold": 95
+    "security_threshold": 80
 }
 

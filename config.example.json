@@ -9,7 +9,7 @@
     "current_version": "11.2.0",
     "notification_enabled": true,
     "auto_upload": false,
-    "security_threshold": 95,
+    "security_threshold": 80,
     "_comments": {
         "gemini_api_key": "从 https://aistudio.google.com/app/apikey 获取",
         "auto_upload": "true=自动推送到GitHub, false=需手动推送（推荐）",
