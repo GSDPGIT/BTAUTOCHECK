@@ -10,6 +10,10 @@
     "notification_enabled": true,
     "auto_upload": false,
     "security_threshold": 80,
+    "backup_enabled": true,
+    "backup_before_upgrade": true,
+    "auto_rollback_on_failure": true,
+    "keep_backups": 5,
     "notifications": {
         "email": {
             "enabled": false,
