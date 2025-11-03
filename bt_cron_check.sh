@@ -13,35 +13,44 @@ LOG_FILE="${LOG_DIR}/auto_check_$(date +%Y%m%d).log"
 # 创建日志目录
 mkdir -p "${LOG_DIR}"
 
+# 定义日志函数（同时输出到文件和控制台）
+log() {
+    echo "$1" | tee -a "${LOG_FILE}"
+}
+
 # 开始执行
-echo "======================================================================" >> "${LOG_FILE}"
-echo "BT-Panel 自动检测任务" >> "${LOG_FILE}"
-echo "执行时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "${LOG_FILE}"
-echo "======================================================================" >> "${LOG_FILE}"
+log "======================================================================"
+log "BT-Panel 自动检测任务"
+log "执行时间: $(date '+%Y-%m-%d %H:%M:%S')"
+log "======================================================================"
 
 # 切换到工作目录
 cd "${WORK_DIR}" || {
-    echo "❌ 错误：无法进入工作目录 ${WORK_DIR}" >> "${LOG_FILE}"
+    log "❌ 错误：无法进入工作目录 ${WORK_DIR}"
     exit 1
 }
 
 # 执行自动更新检测
-echo "" >> "${LOG_FILE}"
-echo "开始执行检测..." >> "${LOG_FILE}"
-echo "" >> "${LOG_FILE}"
+log ""
+log "开始执行检测..."
+log ""
 
-python3 auto_update.py >> "${LOG_FILE}" 2>&1
-EXIT_CODE=$?
+# 运行主程序，将输出同时保存到文件和显示在控制台
+python3 auto_update.py 2>&1 | tee -a "${LOG_FILE}"
+EXIT_CODE=${PIPESTATUS[0]}
 
-echo "" >> "${LOG_FILE}"
-echo "======================================================================" >> "${LOG_FILE}"
-echo "执行结果: $([ $EXIT_CODE -eq 0 ] && echo '✅ 成功' || echo '❌ 失败 (退出码: '$EXIT_CODE')')" >> "${LOG_FILE}"
-echo "完成时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "${LOG_FILE}"
-echo "======================================================================" >> "${LOG_FILE}"
-echo "" >> "${LOG_FILE}"
+log ""
+log "======================================================================"
+if [ $EXIT_CODE -eq 0 ]; then
+    log "执行结果: ✅ 成功"
+else
+    log "执行结果: ❌ 失败 (退出码: $EXIT_CODE)"
+fi
+log "完成时间: $(date '+%Y-%m-%d %H:%M:%S')"
+log "======================================================================"
+log ""
 
 # 清理30天前的日志
 find "${LOG_DIR}" -name "auto_check_*.log" -mtime +30 -delete 2>/dev/null
 
 exit $EXIT_CODE
-
