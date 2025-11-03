@@ -22,7 +22,18 @@ app.secret_key = os.urandom(24)
 
 # 配置
 ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD_HASH = hashlib.sha256('admin123'.encode()).hexdigest()  # 默认密码：admin123
+ADMIN_PASSWORD_FILE = '.admin_password'
+
+def get_admin_password_hash():
+    """获取管理员密码哈希（实时从文件读取）"""
+    if os.path.exists(ADMIN_PASSWORD_FILE):
+        try:
+            with open(ADMIN_PASSWORD_FILE, 'r') as f:
+                return f.read().strip()
+        except:
+            pass
+    # 默认密码：admin123
+    return hashlib.sha256('admin123'.encode()).hexdigest()
 
 def login_required(f):
     """登录验证装饰器"""
@@ -41,7 +52,7 @@ def login():
         password = request.form.get('password')
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         
-        if username == ADMIN_USERNAME and password_hash == ADMIN_PASSWORD_HASH:
+        if username == ADMIN_USERNAME and password_hash == get_admin_password_hash():
             session['logged_in'] = True
             session['username'] = username
             return redirect(url_for('dashboard'))
@@ -67,7 +78,7 @@ def change_password():
         
         # 验证旧密码
         old_password_hash = hashlib.sha256(old_password.encode()).hexdigest()
-        if old_password_hash != ADMIN_PASSWORD_HASH:
+        if old_password_hash != get_admin_password_hash():
             return render_template('change_password.html', error='旧密码错误')
         
         # 验证新密码
@@ -80,23 +91,12 @@ def change_password():
         # 更新密码（写入配置文件）
         new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
         
-        # 更新web_admin.py文件中的密码
+        # 保存到密码文件（实时生效，无需重启）
         try:
-            with open('web_admin.py', 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # 替换密码哈希
-            content = content.replace(
-                f"ADMIN_PASSWORD_HASH = '{ADMIN_PASSWORD_HASH}'",
-                f"ADMIN_PASSWORD_HASH = '{new_password_hash}'"
-            )
-            
-            with open('web_admin.py', 'w', encoding='utf-8') as f:
-                f.write(content)
-            
-            # 同时保存到配置文件
-            with open('.admin_password', 'w') as f:
+            with open(ADMIN_PASSWORD_FILE, 'w') as f:
                 f.write(new_password_hash)
+            
+            os.chmod(ADMIN_PASSWORD_FILE, 0o600)  # 仅所有者可读写
             
             return render_template('change_password.html', success='密码修改成功！请重新登录。', logout=True)
         
