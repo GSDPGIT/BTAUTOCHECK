@@ -66,6 +66,105 @@
     </div>
     
     <div class="card">
+        <div class="card-header">🤖 AI深度分析配置</div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用AI分析</span>
+                <label class="switch">
+                    <input type="checkbox" name="ai_enabled" {% if config.ai_providers.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">启用后将使用AI进行深度代码分析（更准确，但耗时稍长）</small>
+        </div>
+        
+        <div class="form-group">
+            <label>主要AI模型</label>
+            <select name="primary_provider" class="form-control">
+                <option value="gemini" {% if config.ai_providers.primary_provider == 'gemini' %}selected{% endif %}>Google Gemini（推荐-免费）</option>
+                <option value="openai" {% if config.ai_providers.primary_provider == 'openai' %}selected{% endif %}>OpenAI GPT-4</option>
+                <option value="claude" {% if config.ai_providers.primary_provider == 'claude' %}selected{% endif %}>Claude (Anthropic)</option>
+                <option value="qianwen" {% if config.ai_providers.primary_provider == 'qianwen' %}selected{% endif %}>通义千问（阿里云）</option>
+                <option value="wenxin" {% if config.ai_providers.primary_provider == 'wenxin' %}selected{% endif %}>文心一言（百度）</option>
+                <option value="zhipu" {% if config.ai_providers.primary_provider == 'zhipu' %}selected{% endif %}>智谱GLM</option>
+                <option value="deepseek" {% if config.ai_providers.primary_provider == 'deepseek' %}selected{% endif %}>DeepSeek</option>
+                <option value="kimi" {% if config.ai_providers.primary_provider == 'kimi' %}selected{% endif %}>Kimi（月之暗面）</option>
+                <option value="grok" {% if config.ai_providers.primary_provider == 'grok' %}selected{% endif %}>Grok (xAI)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用备用切换</span>
+                <label class="switch">
+                    <input type="checkbox" name="fallback_enabled" {% if config.ai_providers.fallback_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">主AI不可用时自动切换到其他已启用的AI</small>
+        </div>
+        
+        <hr style="margin: 2rem 0;">
+        
+        <h4 style="margin-bottom: 1rem; color: #667eea;">🔑 API Key 配置</h4>
+        
+        <div class="form-group">
+            <label>Gemini API Key</label>
+            <input type="text" name="gemini_api_key" value="{{ config.ai_providers.gemini.api_key if config.ai_providers.gemini.api_key != 'YOUR_GEMINI_API_KEY' else '' }}" placeholder="从 https://aistudio.google.com/app/apikey 获取">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="gemini_enabled" {% if config.ai_providers.gemini.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用Gemini</small>
+        </div>
+        
+        <div class="form-group">
+            <label>OpenAI API Key</label>
+            <input type="text" name="openai_api_key" value="{{ config.ai_providers.openai.api_key if config.ai_providers.openai.api_key and not config.ai_providers.openai.api_key.startswith('YOUR_') else '' }}" placeholder="sk-proj-...">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="openai_enabled" {% if config.ai_providers.openai.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用OpenAI</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Claude API Key</label>
+            <input type="text" name="claude_api_key" value="{{ config.ai_providers.claude.api_key if config.ai_providers.claude.api_key and not config.ai_providers.claude.api_key.startswith('YOUR_') else '' }}" placeholder="sk-ant-...">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="claude_enabled" {% if config.ai_providers.claude.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用Claude</small>
+        </div>
+        
+        <div class="form-group">
+            <label>通义千问 API Key</label>
+            <input type="text" name="qianwen_api_key" value="{{ config.ai_providers.qianwen.api_key if config.ai_providers.qianwen.api_key and not config.ai_providers.qianwen.api_key.startswith('YOUR_') else '' }}" placeholder="sk-...">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="qianwen_enabled" {% if config.ai_providers.qianwen.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用通义千问</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Grok API Key</label>
+            <input type="text" name="grok_api_key" value="{{ config.ai_providers.grok.api_key if config.ai_providers.grok.api_key and not config.ai_providers.grok.api_key.startswith('YOUR_') else '' }}" placeholder="xai-...">
+            <label class="switch" style="margin-top: 0.5rem;">
+                <input type="checkbox" name="grok_enabled" {% if config.ai_providers.grok.enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <small style="margin-left: 0.5rem;">启用Grok (xAI)</small>
+        </div>
+        
+        <p style="margin-top: 1rem; color: #868e96; font-size: 0.9rem;">
+            💡 更多AI配置（DeepSeek、Kimi、文心一言等）请直接编辑 config.json 或查看 <a href="https://github.com/GSDPGIT/BTAUTOCHECK/blob/main/AI_SETUP_GUIDE.md" target="_blank" style="color: #667eea;">AI配置指南</a>
+        </p>
+    </div>
+    
+    <div class="card">
         <div class="card-header">Server酱通知</div>
         
         <div class="form-group">
@@ -88,6 +187,7 @@
     <div style="display: flex; gap: 1rem;">
         <button type="submit" class="btn btn-primary">💾 保存配置</button>
         <button type="button" onclick="testNotification()" class="btn btn-success">📨 测试通知</button>
+        <button type="button" onclick="testAI()" class="btn btn-secondary">🤖 测试AI</button>
     </div>
 </form>
 
@@ -126,6 +226,14 @@ function testNotification() {
             alert('❌ ' + data.message);
         }
     });
+}
+
+function testAI() {
+    if (!confirm('确定要测试AI连接吗？\n这将调用已配置的AI进行测试分析。')) {
+        return;
+    }
+    
+    alert('🧪 AI测试功能开发中...\n\n请使用命令行测试：\npython3 ai_analyzer.py test');
 }
 </script>
 {% endblock %}

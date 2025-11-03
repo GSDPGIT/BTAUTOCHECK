@@ -147,6 +147,30 @@ def config_management():
         config['auto_rollback_on_failure'] = request.form.get('auto_rollback_on_failure') == 'on'
         config['keep_backups'] = int(request.form.get('keep_backups', 5))
         
+        # 更新AI配置
+        if 'ai_providers' not in config:
+            config['ai_providers'] = {}
+        
+        config['ai_providers']['enabled'] = request.form.get('ai_enabled') == 'on'
+        config['ai_providers']['primary_provider'] = request.form.get('primary_provider', 'gemini')
+        config['ai_providers']['fallback_enabled'] = request.form.get('fallback_enabled') == 'on'
+        
+        # 更新各AI的配置
+        ai_providers = ['gemini', 'openai', 'claude', 'qianwen', 'grok']
+        for provider in ai_providers:
+            if provider not in config['ai_providers']:
+                config['ai_providers'][provider] = {}
+            
+            enabled_key = f'{provider}_enabled'
+            apikey_key = f'{provider}_api_key'
+            
+            if enabled_key in request.form:
+                config['ai_providers'][provider]['enabled'] = request.form.get(enabled_key) == 'on'
+            
+            apikey_value = request.form.get(apikey_key, '')
+            if apikey_value and apikey_value.strip():
+                config['ai_providers'][provider]['api_key'] = apikey_value.strip()
+        
         # 更新通知配置
         if 'serverchan_enabled' in request.form:
             config['notifications']['serverchan']['enabled'] = request.form.get('serverchan_enabled') == 'on'
