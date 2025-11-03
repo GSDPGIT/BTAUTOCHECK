@@ -667,13 +667,30 @@ def main():
             
             # 选择高风险文件进行AI分析
             high_risk_files = []
-            for file_path, file_data in files_info.items():
+            for file_data in files_info:
+                file_path = file_data['path']
                 if any(keyword in file_path.lower() for keyword in ['ajax', 'api', 'auth', 'login', 'admin', 'plugin']):
-                    high_risk_files.append(file_path)
+                    high_risk_files.append({
+                        'path': file_path,
+                        'content': file_data['content'][:5000]  # 只取前5000字符
+                    })
             
             if high_risk_files:
-                print(f"📋 选择 {len(high_risk_files[:10])} 个高风险文件进行AI分析...")
-                ai_results = analyzer.batch_analyze_files(high_risk_files[:10], max_files=10)
+                # 限制分析数量
+                files_to_analyze = high_risk_files[:5]  # 只分析前5个高风险文件
+                print(f"📋 选择 {len(files_to_analyze)} 个高风险文件进行AI分析...")
+                
+                ai_results = []
+                for i, file_data in enumerate(files_to_analyze, 1):
+                    try:
+                        print(f"🔍 分析 {i}/{len(files_to_analyze)}: {file_data['path'][:50]}...")
+                        result = analyzer.analyze_code(file_data['content'], file_data['path'])
+                        if result:
+                            result['file'] = file_data['path']
+                            ai_results.append(result)
+                    except Exception as e:
+                        print(f"   ⚠️  跳过: {e}")
+                        continue
                 
                 # 汇总AI分析结果
                 if ai_results:
@@ -688,6 +705,7 @@ def main():
                         'average_score': round(avg_score, 2),
                         'total_findings': len(all_findings),
                         'findings': all_findings[:20],  # 只保留前20个发现
+                        'recommendations': ai_results[0].get('recommendations', [])[:5],  # 前5条建议
                         'overall_safe': avg_score >= 70
                     }
                     
