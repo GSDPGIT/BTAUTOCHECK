@@ -328,6 +328,7 @@
     <div class="sidebar">
         <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">📊 仪表板</a>
         <a href="{{ url_for('config_management') }}" class="{% if request.endpoint == 'config_management' %}active{% endif %}">⚙️ 配置管理</a>
+        <a href="{{ url_for('alert_rules_config') }}" class="{% if request.endpoint == 'alert_rules_config' %}active{% endif %}">🔔 告警规则</a>
         <a href="{{ url_for('backup_list') }}" class="{% if request.endpoint == 'backup_list' %}active{% endif %}">💾 备份管理</a>
         <a href="{{ url_for('report_list') }}" class="{% if request.endpoint == 'report_list' %}active{% endif %}">📋 安全报告</a>
         <a href="{{ url_for('log_viewer') }}" class="{% if request.endpoint == 'log_viewer' %}active{% endif %}">📝 系统日志</a>

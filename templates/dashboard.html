@@ -2,6 +2,11 @@
 
 {% block title %}仪表板 - BTAUTOCHECK{% endblock %}
 
+{% block head %}
+<!-- Chart.js for visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <h2 style="margin-bottom: 2rem;">📊 仪表板</h2>
 
@@ -29,6 +34,30 @@
             {% else %}
             <span style="color: #ff6b6b;">✗</span>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 新增：数据分析图表区域 -->
+<div class="card">
+    <div class="card-header">📈 安全评分趋势（最近30天）</div>
+    <div style="padding: 2rem;">
+        <canvas id="scoreTrendChart" style="max-height: 300px;"></canvas>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+    <div class="card">
+        <div class="card-header">🔍 问题类型分布</div>
+        <div style="padding: 2rem;">
+            <canvas id="issueDistributionChart" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">🤖 AI模型使用统计</div>
+        <div style="padding: 2rem;">
+            <canvas id="aiStatsChart" style="max-height: 300px;"></canvas>
         </div>
     </div>
 </div>
@@ -213,11 +242,208 @@ function testNotification() {
     });
 }
 
+// ========================================
+// 数据可视化（Chart.js）
+// ========================================
+
+function initCharts() {
+    // 1. 评分趋势图
+    fetch('{{ url_for("api_score_trend") }}')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && result.data.dates.length > 0) {
+                const data = result.data;
+                const ctx = document.getElementById('scoreTrendChart');
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: '静态评分',
+                            data: data.static_scores,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'AI评分',
+                            data: data.ai_scores,
+                            borderColor: '#f093fb',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        const index = context[0].dataIndex;
+                                        return '版本: ' + data.versions[index] + '\n日期: ' + data.dates[index];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: '评分'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('scoreTrendChart').parentElement.innerHTML = '<p style="text-align:center;color:#868e96;padding:2rem;">暂无足够数据生成趋势图</p>';
+            }
+        });
+    
+    // 2. 问题类型分布（饼图）
+    fetch('{{ url_for("api_issue_distribution") }}')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && Object.keys(result.data).length > 0) {
+                const data = result.data;
+                const ctx = document.getElementById('issueDistributionChart');
+                
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(data),
+                        datasets: [{
+                            data: Object.values(data),
+                            backgroundColor: [
+                                '#ff6b6b', '#f59f00', '#fab005', 
+                                '#51cf66', '#339af0', '#845ef7',
+                                '#f783ac', '#fcc419', '#94d82d',
+                                '#15aabf', '#f06595'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('issueDistributionChart').parentElement.innerHTML = '<p style="text-align:center;color:#868e96;padding:2rem;">暂无问题分布数据</p>';
+            }
+        });
+    
+    // 3. AI使用统计（柱状图）
+    fetch('{{ url_for("api_ai_stats") }}')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && Object.keys(result.data).length > 0) {
+                const data = result.data;
+                const providers = Object.keys(data);
+                const counts = providers.map(p => data[p].count);
+                const avgScores = providers.map(p => data[p].avg_score);
+                
+                const ctx = document.getElementById('aiStatsChart');
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: providers.map(p => p.toUpperCase()),
+                        datasets: [{
+                            label: '使用次数',
+                            data: counts,
+                            backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                            borderColor: '#667eea',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        }, {
+                            label: '平均评分',
+                            data: avgScores,
+                            type: 'line',
+                            borderColor: '#f093fb',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: '使用次数'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                min: 0,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: '平均评分'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('aiStatsChart').parentElement.innerHTML = '<p style="text-align:center;color:#868e96;padding:2rem;">暂无AI使用数据</p>';
+            }
+        });
+}
+
 // 页面加载时获取调度器状态
 document.addEventListener('DOMContentLoaded', function() {
     loadSchedulerStatus();
     // 每30秒刷新一次状态
     setInterval(loadSchedulerStatus, 30000);
+    
+    // 初始化图表
+    initCharts();
 });
 </script>
 {% endblock %}

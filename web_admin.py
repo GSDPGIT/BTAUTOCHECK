@@ -18,6 +18,8 @@ from datetime import datetime
 from secure_config import SecureConfig
 from backup_manager import BackupManager
 from notification import NotificationManager
+from analytics import AnalyticsEngine
+from alert_rules import AlertRulesEngine
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from werkzeug.security import safe_join
@@ -608,6 +610,55 @@ def api_stats():
     
     return jsonify(stats)
 
+# ========================================
+# Analytics API（新增）
+# ========================================
+
+@app.route('/api/analytics/score_trend')
+@login_required
+def api_score_trend():
+    """获取评分趋势数据"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        analytics = AnalyticsEngine()
+        trend = analytics.get_score_trend(days)
+        return jsonify({'success': True, 'data': trend})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/analytics/issue_distribution')
+@login_required
+def api_issue_distribution():
+    """获取问题分布数据"""
+    try:
+        analytics = AnalyticsEngine()
+        distribution = analytics.get_issue_distribution()
+        return jsonify({'success': True, 'data': distribution})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/analytics/ai_stats')
+@login_required
+def api_ai_stats():
+    """获取AI使用统计"""
+    try:
+        analytics = AnalyticsEngine()
+        stats = analytics.get_ai_usage_stats()
+        return jsonify({'success': True, 'data': stats})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/analytics/summary')
+@login_required
+def api_analytics_summary():
+    """获取分析汇总"""
+    try:
+        analytics = AnalyticsEngine()
+        summary = analytics.get_summary_stats()
+        return jsonify({'success': True, 'data': summary})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 # 辅助函数
 
 def get_recent_reports(limit=5):
@@ -854,6 +905,100 @@ def upload_to_github():
     except Exception as e:
         print(f"❌ 上传异常: {e}")
         return jsonify({'success': False, 'message': str(e)})
+
+# ========================================
+# 告警规则配置
+# ========================================
+
+@app.route('/alert_rules', methods=['GET', 'POST'])
+@login_required
+@audit_log('告警规则配置')
+def alert_rules_config():
+    """告警规则配置"""
+    secure_config = SecureConfig()
+    
+    if request.method == 'POST':
+        config = secure_config.load_config()
+        
+        # 确保alert_rules存在
+        if 'alert_rules' not in config:
+            config['alert_rules'] = {}
+        
+        # 更新严重告警配置
+        config['alert_rules']['critical'] = {
+            'enabled': request.form.get('critical_enabled') == 'on',
+            'score_threshold': int(request.form.get('critical_score_threshold', 60)),
+            'high_risk_threshold': int(request.form.get('critical_high_risk_threshold', 50)),
+            'conditions': request.form.getlist('critical_conditions'),
+            'channels': request.form.getlist('critical_channels'),
+            'repeat_interval_hours': int(request.form.get('critical_repeat_interval', 24))
+        }
+        
+        # 更新警告告警配置
+        config['alert_rules']['warning'] = {
+            'enabled': request.form.get('warning_enabled') == 'on',
+            'score_threshold': int(request.form.get('warning_score_threshold', 75)),
+            'conditions': ['score_warning'],
+            'channels': request.form.getlist('warning_channels'),
+            'repeat_interval_hours': int(request.form.get('warning_repeat_interval', 72))
+        }
+        
+        # 更新信息通知配置
+        config['alert_rules']['info'] = {
+            'enabled': request.form.get('info_enabled') == 'on',
+            'conditions': ['new_version_found'],
+            'channels': request.form.getlist('info_channels'),
+            'repeat_interval_hours': int(request.form.get('info_repeat_interval', 168))
+        }
+        
+        # 更新静默时间配置
+        config['alert_rules']['silent_hours'] = {
+            'enabled': request.form.get('silent_hours_enabled') == 'on',
+            'start': request.form.get('silent_start', '22:00'),
+            'end': request.form.get('silent_end', '08:00')
+        }
+        
+        # 保存配置
+        with open('config.json', 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        
+        return jsonify({'success': True, 'message': '告警规则已保存'})
+    
+    # GET请求：显示配置页面
+    config = secure_config.load_config()
+    
+    # 确保alert_rules存在
+    if 'alert_rules' not in config:
+        config['alert_rules'] = {
+            'critical': {
+                'enabled': True,
+                'score_threshold': 60,
+                'high_risk_threshold': 50,
+                'conditions': ['score_critical', 'backdoor_found'],
+                'channels': ['email'],
+                'repeat_interval_hours': 24
+            },
+            'warning': {
+                'enabled': True,
+                'score_threshold': 75,
+                'conditions': ['score_warning'],
+                'channels': ['serverchan'],
+                'repeat_interval_hours': 72
+            },
+            'info': {
+                'enabled': True,
+                'conditions': ['new_version_found'],
+                'channels': ['webhook'],
+                'repeat_interval_hours': 168
+            },
+            'silent_hours': {
+                'enabled': False,
+                'start': '22:00',
+                'end': '08:00'
+            }
+        }
+    
+    return render_template('alert_rules.html', config=config)
 
 if __name__ == '__main__':
     # 确保必要的目录存在

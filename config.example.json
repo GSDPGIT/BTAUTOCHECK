@@ -22,6 +22,12 @@
         "enabled": false,
         "primary_provider": "gemini",
         "fallback_enabled": true,
+        "consensus_mode": {
+            "enabled": false,
+            "min_ais": 2,
+            "max_ais": 3,
+            "comment": "AI共识模式：使用多个AI交叉验证，提升准确性"
+        },
         "gemini": {
             "enabled": false,
             "api_key": "YOUR_GEMINI_API_KEY",
@@ -122,6 +128,38 @@
             "bot_token": "YOUR_BOT_TOKEN",
             "chat_id": "YOUR_CHAT_ID",
             "comment": "从 @BotFather 创建机器人获取"
+        }
+    },
+    "alert_rules": {
+        "critical": {
+            "enabled": true,
+            "conditions": ["score_critical", "backdoor_found"],
+            "score_threshold": 60,
+            "high_risk_threshold": 50,
+            "channels": ["email", "telegram", "serverchan"],
+            "repeat_interval_hours": 24,
+            "comment": "严重告警：评分<60或发现后门，24小时内不重复"
+        },
+        "warning": {
+            "enabled": true,
+            "conditions": ["score_warning"],
+            "score_threshold": 75,
+            "channels": ["serverchan"],
+            "repeat_interval_hours": 72,
+            "comment": "警告告警：评分<75，72小时内不重复"
+        },
+        "info": {
+            "enabled": true,
+            "conditions": ["new_version_found"],
+            "channels": ["webhook"],
+            "repeat_interval_hours": 168,
+            "comment": "信息通知：发现新版本，一周内不重复"
+        },
+        "silent_hours": {
+            "enabled": false,
+            "start": "22:00",
+            "end": "08:00",
+            "comment": "静默时间：夜间不发送告警（22:00-08:00）"
         }
     }
 }

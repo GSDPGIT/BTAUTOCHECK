@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}告警规则 - BTAUTOCHECK{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 2rem;">🔔 智能告警规则配置</h2>
+
+<form id="alertRulesForm" method="POST">
+    <!-- 严重告警 -->
+    <div class="card">
+        <div class="card-header" style="background: #ff6b6b; color: white;">
+            🔴 严重告警（Critical）
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用严重告警</span>
+                <label class="switch">
+                    <input type="checkbox" name="critical_enabled" {% if config.alert_rules.critical.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">触发条件：评分过低或发现后门代码</small>
+        </div>
+        
+        <div class="form-group">
+            <label>评分阈值（低于此分数触发）</label>
+            <input type="number" name="critical_score_threshold" value="{{ config.alert_rules.critical.score_threshold }}" min="0" max="100">
+            <small style="color: #868e96;">推荐：60分</small>
+        </div>
+        
+        <div class="form-group">
+            <label>高风险文件阈值</label>
+            <input type="number" name="critical_high_risk_threshold" value="{{ config.alert_rules.critical.high_risk_threshold }}" min="0" max="1000">
+            <small style="color: #868e96;">风险文件数超过此值时触发告警</small>
+        </div>
+        
+        <div class="form-group">
+            <label>触发条件（可多选）</label>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label>
+                    <input type="checkbox" name="critical_conditions" value="score_critical" {% if 'score_critical' in config.alert_rules.critical.conditions %}checked{% endif %}>
+                    评分过低（低于上述阈值）
+                </label>
+                <label>
+                    <input type="checkbox" name="critical_conditions" value="backdoor_found" {% if 'backdoor_found' in config.alert_rules.critical.conditions %}checked{% endif %}>
+                    发现后门代码
+                </label>
+                <label>
+                    <input type="checkbox" name="critical_conditions" value="high_risk_files" {% if 'high_risk_files' in config.alert_rules.critical.conditions %}checked{% endif %}>
+                    高风险文件过多
+                </label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>重复间隔（小时）</label>
+            <input type="number" name="critical_repeat_interval" value="{{ config.alert_rules.critical.repeat_interval_hours }}" min="1" max="168">
+            <small style="color: #868e96;">同一问题在此时间内不重复告警（推荐：24小时）</small>
+        </div>
+        
+        <div class="form-group">
+            <label>通知渠道（可多选）</label>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label>
+                    <input type="checkbox" name="critical_channels" value="email" {% if 'email' in config.alert_rules.critical.channels %}checked{% endif %}>
+                    邮件
+                </label>
+                <label>
+                    <input type="checkbox" name="critical_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.critical.channels %}checked{% endif %}>
+                    Server酱（微信）
+                </label>
+                <label>
+                    <input type="checkbox" name="critical_channels" value="telegram" {% if 'telegram' in config.alert_rules.critical.channels %}checked{% endif %}>
+                    Telegram
+                </label>
+                <label>
+                    <input type="checkbox" name="critical_channels" value="webhook" {% if 'webhook' in config.alert_rules.critical.channels %}checked{% endif %}>
+                    Webhook
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 警告告警 -->
+    <div class="card">
+        <div class="card-header" style="background: #f59f00; color: white;">
+            ⚠️ 警告告警（Warning）
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用警告告警</span>
+                <label class="switch">
+                    <input type="checkbox" name="warning_enabled" {% if config.alert_rules.warning.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>评分阈值</label>
+            <input type="number" name="warning_score_threshold" value="{{ config.alert_rules.warning.score_threshold }}" min="60" max="100">
+            <small style="color: #868e96;">推荐：75分</small>
+        </div>
+        
+        <div class="form-group">
+            <label>重复间隔（小时）</label>
+            <input type="number" name="warning_repeat_interval" value="{{ config.alert_rules.warning.repeat_interval_hours }}" min="1" max="168">
+            <small style="color: #868e96;">推荐：72小时（3天）</small>
+        </div>
+        
+        <div class="form-group">
+            <label>通知渠道</label>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label>
+                    <input type="checkbox" name="warning_channels" value="email" {% if 'email' in config.alert_rules.warning.channels %}checked{% endif %}>
+                    邮件
+                </label>
+                <label>
+                    <input type="checkbox" name="warning_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.warning.channels %}checked{% endif %}>
+                    Server酱（微信）
+                </label>
+                <label>
+                    <input type="checkbox" name="warning_channels" value="telegram" {% if 'telegram' in config.alert_rules.warning.channels %}checked{% endif %}>
+                    Telegram
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 信息通知 -->
+    <div class="card">
+        <div class="card-header" style="background: #339af0; color: white;">
+            📢 信息通知（Info）
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用信息通知</span>
+                <label class="switch">
+                    <input type="checkbox" name="info_enabled" {% if config.alert_rules.info.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">发现新版本时通知</small>
+        </div>
+        
+        <div class="form-group">
+            <label>重复间隔（小时）</label>
+            <input type="number" name="info_repeat_interval" value="{{ config.alert_rules.info.repeat_interval_hours }}" min="1" max="720">
+            <small style="color: #868e96;">推荐：168小时（1周）</small>
+        </div>
+        
+        <div class="form-group">
+            <label>通知渠道</label>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label>
+                    <input type="checkbox" name="info_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.info.channels %}checked{% endif %}>
+                    Server酱（微信）
+                </label>
+                <label>
+                    <input type="checkbox" name="info_channels" value="webhook" {% if 'webhook' in config.alert_rules.info.channels %}checked{% endif %}>
+                    Webhook
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 静默时间 -->
+    <div class="card">
+        <div class="card-header">
+            🌙 静默时间（Do Not Disturb）
+        </div>
+        
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 1rem;">
+                <span>启用静默时间</span>
+                <label class="switch">
+                    <input type="checkbox" name="silent_hours_enabled" {% if config.alert_rules.silent_hours.enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <small style="color: #868e96;">在指定时间段内不发送告警（避免夜间打扰）</small>
+        </div>
+        
+        <div class="form-group">
+            <label>开始时间</label>
+            <input type="time" name="silent_start" value="{{ config.alert_rules.silent_hours.start }}">
+        </div>
+        
+        <div class="form-group">
+            <label>结束时间</label>
+            <input type="time" name="silent_end" value="{{ config.alert_rules.silent_hours.end }}">
+            <small style="color: #868e96;">例如：22:00 到 08:00（夜间静默）</small>
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary">💾 保存告警规则</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← 返回仪表板</a>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('alertRulesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    ajaxPost('{{ url_for("alert_rules_config") }}', Object.fromEntries(formData), function(data) {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    });
+});
+</script>
+{% endblock %}
+
