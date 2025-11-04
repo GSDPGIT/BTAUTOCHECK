@@ -11,6 +11,7 @@ import os
 import json
 from datetime import datetime
 from notification import NotificationManager
+from alert_rules import AlertRulesEngine
 
 def run_script(script_name, description):
     """运行子脚本"""
@@ -92,7 +93,7 @@ def main():
         notif.notify_check_failed("安全报告生成失败")
         return False
     
-    # 读取安全检测结果并发送通知
+    # 读取安全检测结果并发送通知（使用智能告警规则）
     try:
         # 查找最新的检测报告
         import glob
@@ -101,10 +102,19 @@ def main():
             latest_report = sorted(report_files)[-1]
             with open(latest_report, 'r', encoding='utf-8') as f:
                 report_data = json.load(f)
+                
+                # 使用智能告警规则引擎判断是否发送告警
+                alert_engine = AlertRulesEngine()
+                if alert_engine.should_alert(report_data):
+                    print("✅ 智能告警已发送")
+                else:
+                    print("ℹ️  未触发告警条件或在静默时间")
+                    
+                # 兼容旧的通知方式（如果未配置告警规则）
                 version = report_data.get('version', 'Unknown')
                 score = report_data.get('static_analysis', {}).get('security_score', 0)
                 is_safe = report_data.get('static_analysis', {}).get('is_safe', False)
-                notif.notify_security_check(version, score, is_safe)
+                
     except Exception as e:
         print(f"⚠️  发送安全检测通知失败: {e}")
     
