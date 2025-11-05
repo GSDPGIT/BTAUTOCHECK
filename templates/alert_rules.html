@@ -13,13 +13,13 @@
         </div>
         
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用严重告警</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500; color: #495057;">启用严重告警</span>
                 <label class="switch">
                     <input type="checkbox" name="critical_enabled" {% if config.alert_rules.critical.enabled %}checked{% endif %}>
                     <span class="slider"></span>
                 </label>
-            </label>
+            </div>
             <small style="color: #868e96;">触发条件：评分过低或发现后门代码</small>
         </div>
         
@@ -89,13 +89,13 @@
         </div>
         
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用警告告警</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500; color: #495057;">启用警告告警</span>
                 <label class="switch">
                     <input type="checkbox" name="warning_enabled" {% if config.alert_rules.warning.enabled %}checked{% endif %}>
                     <span class="slider"></span>
                 </label>
-            </label>
+            </div>
         </div>
         
         <div class="form-group">
@@ -136,13 +136,13 @@
         </div>
         
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用信息通知</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500; color: #495057;">启用信息通知</span>
                 <label class="switch">
                     <input type="checkbox" name="info_enabled" {% if config.alert_rules.info.enabled %}checked{% endif %}>
                     <span class="slider"></span>
                 </label>
-            </label>
+            </div>
             <small style="color: #868e96;">发现新版本时通知</small>
         </div>
         
@@ -174,13 +174,13 @@
         </div>
         
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用静默时间</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="font-weight: 500; color: #495057;">启用静默时间</span>
                 <label class="switch">
                     <input type="checkbox" name="silent_hours_enabled" {% if config.alert_rules.silent_hours.enabled %}checked{% endif %}>
                     <span class="slider"></span>
                 </label>
-            </label>
+            </div>
             <small style="color: #868e96;">在指定时间段内不发送告警（避免夜间打扰）</small>
         </div>
         
