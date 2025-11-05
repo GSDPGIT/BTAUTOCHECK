@@ -38,17 +38,17 @@
         <div class="form-group">
             <label>触发条件（可多选）</label>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_conditions" value="score_critical" {% if 'score_critical' in config.alert_rules.critical.conditions %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    评分过低（低于上述阈值）
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_conditions" value="score_critical" {% if 'score_critical' in config.alert_rules.critical.conditions %}checked{% endif %} style="margin-right: 8px;">
+                    <span>评分过低（低于上述阈值）</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_conditions" value="backdoor_found" {% if 'backdoor_found' in config.alert_rules.critical.conditions %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    发现后门代码
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_conditions" value="backdoor_found" {% if 'backdoor_found' in config.alert_rules.critical.conditions %}checked{% endif %} style="margin-right: 8px;">
+                    <span>发现后门代码</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_conditions" value="high_risk_files" {% if 'high_risk_files' in config.alert_rules.critical.conditions %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    高风险文件过多
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_conditions" value="high_risk_files" {% if 'high_risk_files' in config.alert_rules.critical.conditions %}checked{% endif %} style="margin-right: 8px;">
+                    <span>高风险文件过多</span>
                 </label>
             </div>
         </div>
@@ -62,21 +62,21 @@
         <div class="form-group">
             <label>通知渠道（可多选）</label>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_channels" value="email" {% if 'email' in config.alert_rules.critical.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    邮件
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_channels" value="email" {% if 'email' in config.alert_rules.critical.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>邮件</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.critical.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Server酱（微信）
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.critical.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Server酱（微信）</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_channels" value="telegram" {% if 'telegram' in config.alert_rules.critical.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Telegram
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_channels" value="telegram" {% if 'telegram' in config.alert_rules.critical.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Telegram</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="critical_channels" value="webhook" {% if 'webhook' in config.alert_rules.critical.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Webhook
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="critical_channels" value="webhook" {% if 'webhook' in config.alert_rules.critical.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Webhook</span>
                 </label>
             </div>
         </div>
@@ -113,17 +113,17 @@
         <div class="form-group">
             <label>通知渠道</label>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="warning_channels" value="email" {% if 'email' in config.alert_rules.warning.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    邮件
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="warning_channels" value="email" {% if 'email' in config.alert_rules.warning.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>邮件</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="warning_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.warning.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Server酱（微信）
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="warning_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.warning.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Server酱（微信）</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="warning_channels" value="telegram" {% if 'telegram' in config.alert_rules.warning.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Telegram
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="warning_channels" value="telegram" {% if 'telegram' in config.alert_rules.warning.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Telegram</span>
                 </label>
             </div>
         </div>
@@ -155,13 +155,13 @@
         <div class="form-group">
             <label>通知渠道</label>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="info_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.info.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Server酱（微信）
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="info_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.info.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Server酱（微信）</span>
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="checkbox" name="info_channels" value="webhook" {% if 'webhook' in config.alert_rules.info.channels %}checked{% endif %} style="vertical-align: middle; margin-right: 8px;">
-                    Webhook
+                <label style="cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" name="info_channels" value="webhook" {% if 'webhook' in config.alert_rules.info.channels %}checked{% endif %} style="margin-right: 8px;">
+                    <span>Webhook</span>
                 </label>
             </div>
         </div>
