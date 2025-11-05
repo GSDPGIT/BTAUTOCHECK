@@ -189,7 +189,7 @@
         .form-group input[type="radio"] {
             width: auto;
             margin: 0;
-            vertical-align: middle;
+            flex-shrink: 0;
         }
         
         .form-group input:focus,
@@ -323,6 +323,20 @@
             margin: 0;
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+
+        /* Checkbox对齐修复 */
+        .form-group label[style*="display: flex"] {
+            line-height: 1.5;
+        }
+
+        .form-group label[style*="display: flex"] input[type="checkbox"] {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        .form-group label[style*="display: flex"] span {
+            line-height: 1.5;
         }
     </style>
     {% block extra_css %}{% endblock %}
