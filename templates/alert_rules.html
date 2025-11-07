@@ -2,219 +2,272 @@
 
 {% block title %}告警规则 - BTAUTOCHECK{% endblock %}
 
-{% block extra_css %}
-<style>
-.checkbox-item {
-    display: block;
-    margin-bottom: 10px;
-    cursor: pointer;
-    padding: 6px 0;
-}
-
-.checkbox-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin: 0 10px 0 0;
-    vertical-align: middle;
-    position: relative;
-    top: 2px;
-}
-
-.checkbox-item span {
-    vertical-align: middle;
-}
-</style>
-{% endblock %}
-
 {% block content %}
-<h2 style="margin-bottom: 2rem;">🔔 智能告警规则配置</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+        <i class="bi bi-bell-fill text-primary"></i> 智能告警规则配置
+    </h2>
+</div>
 
 <form id="alertRulesForm" method="POST">
     <!-- 严重告警 -->
-    <div class="card">
-        <div class="card-header" style="background: #ff6b6b; color: white;">
-            🔴 严重告警（Critical）
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-danger bg-opacity-10 text-danger border-danger border-start border-5">
+            <i class="bi bi-exclamation-triangle-fill"></i> 严重告警（Critical）
         </div>
-
-        <div class="form-group">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="font-weight: 500; color: #495057;">启用严重告警</span>
-                <label class="switch">
-                    <input type="checkbox" name="critical_enabled" {% if config.alert_rules.critical.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
+        <div class="card-body">
+            <!-- 启用开关 -->
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <div>
+                    <label class="form-label mb-0">启用严重告警</label>
+                    <div class="form-text">触发条件：评分过低或发现后门代码</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="critical_enabled" id="critical_enabled" {% if config.alert_rules.critical.enabled %}checked{% endif %}>
+                </div>
             </div>
-            <small style="color: #868e96;">触发条件：评分过低或发现后门代码</small>
-        </div>
 
-        <div class="form-group">
-            <label>评分阈值（低于此分数触发）</label>
-            <input type="number" name="critical_score_threshold" value="{{ config.alert_rules.critical.score_threshold }}" min="0" max="100">
-            <small style="color: #868e96;">推荐：60分</small>
-        </div>
+            <div class="row g-3">
+                <!-- 评分阈值 -->
+                <div class="col-md-6">
+                    <label for="critical_score" class="form-label">评分阈值（低于此分数触发）</label>
+                    <input type="number" class="form-control" id="critical_score" name="critical_score_threshold"
+                           value="{{ config.alert_rules.critical.score_threshold }}" min="0" max="100">
+                    <div class="form-text">推荐：60分</div>
+                </div>
 
-        <div class="form-group">
-            <label>高风险文件阈值</label>
-            <input type="number" name="critical_high_risk_threshold" value="{{ config.alert_rules.critical.high_risk_threshold }}" min="0" max="1000">
-            <small style="color: #868e96;">风险文件数超过此值时触发告警</small>
-        </div>
+                <!-- 高风险文件阈值 -->
+                <div class="col-md-6">
+                    <label for="critical_high_risk" class="form-label">高风险文件阈值</label>
+                    <input type="number" class="form-control" id="critical_high_risk" name="critical_high_risk_threshold"
+                           value="{{ config.alert_rules.critical.high_risk_threshold }}" min="0" max="1000">
+                    <div class="form-text">风险文件数超过此值时触发告警</div>
+                </div>
 
-        <div class="form-group">
-            <label style="margin-bottom: 0.75rem;">触发条件（可多选）</label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_conditions" value="score_critical" {% if 'score_critical' in config.alert_rules.critical.conditions %}checked{% endif %}>
-                <span>评分过低（低于上述阈值）</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_conditions" value="backdoor_found" {% if 'backdoor_found' in config.alert_rules.critical.conditions %}checked{% endif %}>
-                <span>发现后门代码</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_conditions" value="high_risk_files" {% if 'high_risk_files' in config.alert_rules.critical.conditions %}checked{% endif %}>
-                <span>高风险文件过多</span>
-            </label>
-        </div>
+                <!-- 触发条件 -->
+                <div class="col-12">
+                    <label class="form-label">触发条件（可多选）</label>
+                    <div class="mt-2">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_conditions" value="score_critical"
+                                   id="crit_cond1" {% if 'score_critical' in config.alert_rules.critical.conditions %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_cond1">
+                                评分过低（低于上述阈值）
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_conditions" value="backdoor_found"
+                                   id="crit_cond2" {% if 'backdoor_found' in config.alert_rules.critical.conditions %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_cond2">
+                                发现后门代码
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_conditions" value="high_risk_files"
+                                   id="crit_cond3" {% if 'high_risk_files' in config.alert_rules.critical.conditions %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_cond3">
+                                高风险文件过多
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
-        <div class="form-group">
-            <label>重复间隔（小时）</label>
-            <input type="number" name="critical_repeat_interval" value="{{ config.alert_rules.critical.repeat_interval_hours }}" min="1" max="168">
-            <small style="color: #868e96;">同一问题在此时间内不重复告警（推荐：24小时）</small>
-        </div>
+                <!-- 重复间隔 -->
+                <div class="col-md-6">
+                    <label for="critical_interval" class="form-label">重复间隔（小时）</label>
+                    <input type="number" class="form-control" id="critical_interval" name="critical_repeat_interval"
+                           value="{{ config.alert_rules.critical.repeat_interval_hours }}" min="1" max="168">
+                    <div class="form-text">同一问题在此时间内不重复告警（推荐：24小时）</div>
+                </div>
 
-        <div class="form-group">
-            <label style="margin-bottom: 0.75rem;">通知渠道（可多选）</label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_channels" value="email" {% if 'email' in config.alert_rules.critical.channels %}checked{% endif %}>
-                <span>邮件</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.critical.channels %}checked{% endif %}>
-                <span>Server酱（微信）</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_channels" value="telegram" {% if 'telegram' in config.alert_rules.critical.channels %}checked{% endif %}>
-                <span>Telegram</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="critical_channels" value="webhook" {% if 'webhook' in config.alert_rules.critical.channels %}checked{% endif %}>
-                <span>Webhook</span>
-            </label>
+                <!-- 通知渠道 -->
+                <div class="col-12">
+                    <label class="form-label">通知渠道（可多选）</label>
+                    <div class="mt-2">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_channels" value="email"
+                                   id="crit_ch1" {% if 'email' in config.alert_rules.critical.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_ch1">
+                                <i class="bi bi-envelope"></i> 邮件
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_channels" value="serverchan"
+                                   id="crit_ch2" {% if 'serverchan' in config.alert_rules.critical.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_ch2">
+                                <i class="bi bi-wechat"></i> Server酱（微信）
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_channels" value="telegram"
+                                   id="crit_ch3" {% if 'telegram' in config.alert_rules.critical.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_ch3">
+                                <i class="bi bi-telegram"></i> Telegram
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="critical_channels" value="webhook"
+                                   id="crit_ch4" {% if 'webhook' in config.alert_rules.critical.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="crit_ch4">
+                                <i class="bi bi-link-45deg"></i> Webhook
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- 警告告警 -->
-    <div class="card">
-        <div class="card-header" style="background: #f59f00; color: white;">
-            ⚠️ 警告告警（Warning）
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-warning bg-opacity-10 text-warning border-warning border-start border-5">
+            <i class="bi bi-exclamation-circle-fill"></i> 警告告警（Warning）
         </div>
-
-        <div class="form-group">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="font-weight: 500; color: #495057;">启用警告告警</span>
-                <label class="switch">
-                    <input type="checkbox" name="warning_enabled" {% if config.alert_rules.warning.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
+        <div class="card-body">
+            <!-- 启用开关 -->
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <label class="form-label mb-0">启用警告告警</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="warning_enabled" id="warning_enabled"
+                           {% if config.alert_rules.warning.enabled %}checked{% endif %}>
+                </div>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label>评分阈值</label>
-            <input type="number" name="warning_score_threshold" value="{{ config.alert_rules.warning.score_threshold }}" min="60" max="100">
-            <small style="color: #868e96;">推荐：75分</small>
-        </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="warning_score" class="form-label">评分阈值</label>
+                    <input type="number" class="form-control" id="warning_score" name="warning_score_threshold"
+                           value="{{ config.alert_rules.warning.score_threshold }}" min="60" max="100">
+                    <div class="form-text">推荐：75分</div>
+                </div>
 
-        <div class="form-group">
-            <label>重复间隔（小时）</label>
-            <input type="number" name="warning_repeat_interval" value="{{ config.alert_rules.warning.repeat_interval_hours }}" min="1" max="168">
-            <small style="color: #868e96;">推荐：72小时（3天）</small>
-        </div>
+                <div class="col-md-6">
+                    <label for="warning_interval" class="form-label">重复间隔（小时）</label>
+                    <input type="number" class="form-control" id="warning_interval" name="warning_repeat_interval"
+                           value="{{ config.alert_rules.warning.repeat_interval_hours }}" min="1" max="168">
+                    <div class="form-text">推荐：72小时（3天）</div>
+                </div>
 
-        <div class="form-group">
-            <label style="margin-bottom: 0.75rem;">通知渠道</label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="warning_channels" value="email" {% if 'email' in config.alert_rules.warning.channels %}checked{% endif %}>
-                <span>邮件</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="warning_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.warning.channels %}checked{% endif %}>
-                <span>Server酱（微信）</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="warning_channels" value="telegram" {% if 'telegram' in config.alert_rules.warning.channels %}checked{% endif %}>
-                <span>Telegram</span>
-            </label>
+                <div class="col-12">
+                    <label class="form-label">通知渠道</label>
+                    <div class="mt-2">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="warning_channels" value="email"
+                                   id="warn_ch1" {% if 'email' in config.alert_rules.warning.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="warn_ch1">
+                                <i class="bi bi-envelope"></i> 邮件
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="warning_channels" value="serverchan"
+                                   id="warn_ch2" {% if 'serverchan' in config.alert_rules.warning.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="warn_ch2">
+                                <i class="bi bi-wechat"></i> Server酱（微信）
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="warning_channels" value="telegram"
+                                   id="warn_ch3" {% if 'telegram' in config.alert_rules.warning.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="warn_ch3">
+                                <i class="bi bi-telegram"></i> Telegram
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- 信息通知 -->
-    <div class="card">
-        <div class="card-header" style="background: #339af0; color: white;">
-            📢 信息通知（Info）
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-info bg-opacity-10 text-info border-info border-start border-5">
+            <i class="bi bi-info-circle-fill"></i> 信息通知（Info）
         </div>
-
-        <div class="form-group">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="font-weight: 500; color: #495057;">启用信息通知</span>
-                <label class="switch">
-                    <input type="checkbox" name="info_enabled" {% if config.alert_rules.info.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <div>
+                    <label class="form-label mb-0">启用信息通知</label>
+                    <div class="form-text">发现新版本时通知</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="info_enabled" id="info_enabled"
+                           {% if config.alert_rules.info.enabled %}checked{% endif %}>
+                </div>
             </div>
-            <small style="color: #868e96;">发现新版本时通知</small>
-        </div>
 
-        <div class="form-group">
-            <label>重复间隔（小时）</label>
-            <input type="number" name="info_repeat_interval" value="{{ config.alert_rules.info.repeat_interval_hours }}" min="1" max="720">
-            <small style="color: #868e96;">推荐：168小时（1周）</small>
-        </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="info_interval" class="form-label">重复间隔（小时）</label>
+                    <input type="number" class="form-control" id="info_interval" name="info_repeat_interval"
+                           value="{{ config.alert_rules.info.repeat_interval_hours }}" min="1" max="720">
+                    <div class="form-text">推荐：168小时（1周）</div>
+                </div>
 
-        <div class="form-group">
-            <label style="margin-bottom: 0.75rem;">通知渠道</label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="info_channels" value="serverchan" {% if 'serverchan' in config.alert_rules.info.channels %}checked{% endif %}>
-                <span>Server酱（微信）</span>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" name="info_channels" value="webhook" {% if 'webhook' in config.alert_rules.info.channels %}checked{% endif %}>
-                <span>Webhook</span>
-            </label>
+                <div class="col-12">
+                    <label class="form-label">通知渠道</label>
+                    <div class="mt-2">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="info_channels" value="serverchan"
+                                   id="info_ch1" {% if 'serverchan' in config.alert_rules.info.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="info_ch1">
+                                <i class="bi bi-wechat"></i> Server酱（微信）
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="info_channels" value="webhook"
+                                   id="info_ch2" {% if 'webhook' in config.alert_rules.info.channels %}checked{% endif %}>
+                            <label class="form-check-label" for="info_ch2">
+                                <i class="bi bi-link-45deg"></i> Webhook
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- 静默时间 -->
-    <div class="card">
-        <div class="card-header">
-            🌙 静默时间（Do Not Disturb）
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-secondary bg-opacity-10 text-secondary border-secondary border-start border-5">
+            <i class="bi bi-moon-fill"></i> 静默时间（Do Not Disturb）
         </div>
-
-        <div class="form-group">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <span style="font-weight: 500; color: #495057;">启用静默时间</span>
-                <label class="switch">
-                    <input type="checkbox" name="silent_hours_enabled" {% if config.alert_rules.silent_hours.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <div>
+                    <label class="form-label mb-0">启用静默时间</label>
+                    <div class="form-text">在指定时间段内不发送告警（避免夜间打扰）</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="silent_hours_enabled" id="silent_enabled"
+                           {% if config.alert_rules.silent_hours.enabled %}checked{% endif %}>
+                </div>
             </div>
-            <small style="color: #868e96;">在指定时间段内不发送告警（避免夜间打扰）</small>
-        </div>
 
-        <div class="form-group">
-            <label>开始时间</label>
-            <input type="time" name="silent_start" value="{{ config.alert_rules.silent_hours.start }}">
-        </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="silent_start" class="form-label">开始时间</label>
+                    <input type="time" class="form-control" id="silent_start" name="silent_start"
+                           value="{{ config.alert_rules.silent_hours.start }}">
+                </div>
 
-        <div class="form-group">
-            <label>结束时间</label>
-            <input type="time" name="silent_end" value="{{ config.alert_rules.silent_hours.end }}">
-            <small style="color: #868e96;">例如：22:00 到 08:00（夜间静默）</small>
+                <div class="col-md-6">
+                    <label for="silent_end" class="form-label">结束时间</label>
+                    <input type="time" class="form-control" id="silent_end" name="silent_end"
+                           value="{{ config.alert_rules.silent_hours.end }}">
+                    <div class="form-text">例如：22:00 到 08:00（夜间静默）</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-        <button type="submit" class="btn btn-primary">💾 保存告警规则</button>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← 返回仪表板</a>
+    <!-- 提交按钮 -->
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-save"></i> 保存告警规则
+        </button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> 返回仪表板
+        </a>
     </div>
 </form>
 
@@ -229,6 +282,7 @@ document.getElementById('alertRulesForm').addEventListener('submit', function(e)
 
     ajaxPost('{{ url_for("alert_rules_config") }}', Object.fromEntries(formData), function(data) {
         if (data.success) {
+            // 使用Bootstrap Toast显示成功消息
             alert('✅ ' + data.message);
             setTimeout(function() {
                 window.location.reload();
