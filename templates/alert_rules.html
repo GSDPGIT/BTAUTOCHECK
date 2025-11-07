@@ -5,23 +5,23 @@
 {% block extra_css %}
 <style>
 .checkbox-item {
-    display: inline-flex;
-    align-items: center;
+    display: block;
     margin-bottom: 10px;
     cursor: pointer;
     padding: 6px 0;
-    width: 100%;
 }
 
 .checkbox-item input[type="checkbox"] {
     width: 16px;
     height: 16px;
     margin: 0 10px 0 0;
-    flex-shrink: 0;
+    vertical-align: middle;
+    position: relative;
+    top: 2px;
 }
 
 .checkbox-item span {
-    line-height: 16px;
+    vertical-align: middle;
 }
 </style>
 {% endblock %}
