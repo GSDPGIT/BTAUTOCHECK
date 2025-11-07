@@ -2,309 +2,453 @@
 
 {% block title %}配置管理 - BTAUTOCHECK{% endblock %}
 
+{% block extra_css %}
+<style>
+    .page-header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+    }
+
+    .page-header .subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 2rem 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h2 style="margin-bottom: 2rem;">⚙️ 配置管理</h2>
+<div class="page-header">
+    <h1>
+        <i class="bi bi-gear-fill"></i> 系统配置管理
+    </h1>
+    <p class="subtitle mb-0">
+        <i class="bi bi-sliders"></i> 配置自动检测、通知渠道和AI分析功能
+    </p>
+</div>
 
 <form id="configForm" method="POST">
-    <div class="card">
-        <div class="card-header">基础配置</div>
-        
-        <div class="form-group">
-            <label>安全评分阈值</label>
-            <input type="number" name="security_threshold" value="{{ config.security_threshold }}" min="0" max="100">
-            <small style="color: #868e96;">低于此分数将发出警告（推荐：80）</small>
+    <!-- 基础配置 -->
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-primary bg-opacity-10 text-primary border-primary border-start border-5">
+            <i class="bi bi-gear"></i> 基础配置
         </div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用通知功能</span>
-                <label class="switch">
-                    <input type="checkbox" name="notification_enabled" {% if config.notification_enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-        </div>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">⏰ 自动检测调度器</div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用自动检测</span>
-                <label class="switch">
-                    <input type="checkbox" name="scheduler_enabled" {% if config.scheduler.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-            <small style="color: #868e96;">启用后将按设定间隔自动检测新版本</small>
-        </div>
-        
-        <div class="form-group">
-            <label>检测间隔（小时）</label>
-            <select name="scheduler_interval" class="form-control">
-                <option value="1" {% if config.scheduler.interval_hours == 1 %}selected{% endif %}>每1小时</option>
-                <option value="2" {% if config.scheduler.interval_hours == 2 %}selected{% endif %}>每2小时</option>
-                <option value="3" {% if config.scheduler.interval_hours == 3 %}selected{% endif %}>每3小时</option>
-                <option value="6" {% if config.scheduler.interval_hours == 6 %}selected{% endif %}>每6小时</option>
-                <option value="12" {% if config.scheduler.interval_hours == 12 %}selected{% endif %}>每12小时</option>
-                <option value="24" {% if config.scheduler.interval_hours == 24 %}selected{% endif %}>每24小时（一天一次）</option>
-            </select>
-            <small style="color: #868e96;">建议：生产环境1-2小时，测试环境6-12小时</small>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="security_threshold" class="form-label">安全评分阈值</label>
+                    <input type="number" class="form-control" id="security_threshold" name="security_threshold"
+                           value="{{ config.security_threshold }}" min="0" max="100">
+                    <div class="form-text">低于此分数将发出警告（推荐：80）</div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center h-100">
+                        <div>
+                            <label class="form-label mb-0">启用通知功能</label>
+                            <div class="form-text">开启后可接收系统通知</div>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="notification_enabled"
+                                   id="notification_enabled" {% if config.notification_enabled %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
-    <div class="card">
-        <div class="card-header">📦 GitHub上传配置</div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用自动上传</span>
-                <label class="switch">
-                    <input type="checkbox" name="auto_upload" {% if config.auto_upload %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-            <small style="color: #868e96;">检测完成后自动上传报告到GitHub仓库</small>
+    <!-- 自动检测调度器 -->
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-info bg-opacity-10 text-info border-info border-start border-5">
+            <i class="bi bi-clock-history"></i> 自动检测调度器
         </div>
-        
-        <div class="form-group">
-            <label>GitHub用户名</label>
-            <input type="text" name="github_username" value="{{ config.github_username }}" placeholder="your_github_username">
-            <small style="color: #868e96;">你的GitHub用户名</small>
-        </div>
-        
-        <div class="form-group">
-            <label>GitHub仓库名</label>
-            <input type="text" name="github_repo" value="{{ config.github_repo }}" placeholder="bt-panel-files">
-            <small style="color: #868e96;">存放报告的仓库名称</small>
-        </div>
-        
-        <div class="form-group">
-            <label>GitHub Token</label>
-            <input type="password" name="github_token" value="{{ config.github_token }}" placeholder="ghp_xxxxxxxxxxxx">
-            <small style="color: #868e96;">
-                Personal Access Token，需要repo权限 
-                <a href="https://github.com/settings/tokens" target="_blank" style="color: #667eea;">获取Token →</a>
-            </small>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <div>
+                    <label class="form-label mb-0">启用自动检测</label>
+                    <div class="form-text">启用后将按设定间隔自动检测新版本</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="scheduler_enabled"
+                           id="scheduler_enabled" {% if config.scheduler.enabled %}checked{% endif %}>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="scheduler_interval" class="form-label">检测间隔（小时）</label>
+                    <select name="scheduler_interval" id="scheduler_interval" class="form-select">
+                        <option value="1" {% if config.scheduler.interval_hours == 1 %}selected{% endif %}>每1小时</option>
+                        <option value="2" {% if config.scheduler.interval_hours == 2 %}selected{% endif %}>每2小时</option>
+                        <option value="3" {% if config.scheduler.interval_hours == 3 %}selected{% endif %}>每3小时</option>
+                        <option value="6" {% if config.scheduler.interval_hours == 6 %}selected{% endif %}>每6小时</option>
+                        <option value="12" {% if config.scheduler.interval_hours == 12 %}selected{% endif %}>每12小时</option>
+                        <option value="24" {% if config.scheduler.interval_hours == 24 %}selected{% endif %}>每24小时（一天一次）</option>
+                    </select>
+                    <div class="form-text">建议：生产环境1-2小时，测试环境6-12小时</div>
+                </div>
+            </div>
         </div>
     </div>
     
-    <div class="card">
-        <div class="card-header">备份配置</div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用备份功能</span>
-                <label class="switch">
-                    <input type="checkbox" name="backup_enabled" {% if config.backup_enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
+    <!-- GitHub上传配置 -->
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-dark bg-opacity-10 text-dark border-dark border-start border-5">
+            <i class="bi bi-github"></i> GitHub上传配置
         </div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>升级前自动备份</span>
-                <label class="switch">
-                    <input type="checkbox" name="backup_before_upgrade" {% if config.backup_before_upgrade %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-        </div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>失败时自动回滚</span>
-                <label class="switch">
-                    <input type="checkbox" name="auto_rollback_on_failure" {% if config.auto_rollback_on_failure %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-        </div>
-        
-        <div class="form-group">
-            <label>保留备份数量</label>
-            <input type="number" name="keep_backups" value="{{ config.keep_backups }}" min="1" max="20">
-        </div>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">🤖 AI深度分析配置</div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用AI分析</span>
-                <label class="switch">
-                    <input type="checkbox" name="ai_enabled" {% if config.ai_providers.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-            <small style="color: #868e96;">启用后将使用AI进行深度代码分析（更准确，但耗时稍长）</small>
-        </div>
-        
-        <div class="form-group">
-            <label>主要AI模型</label>
-            <select name="primary_provider" class="form-control">
-                <option value="gemini" {% if config.ai_providers.primary_provider == 'gemini' %}selected{% endif %}>Google Gemini（推荐-免费）</option>
-                <option value="openai" {% if config.ai_providers.primary_provider == 'openai' %}selected{% endif %}>OpenAI GPT-4</option>
-                <option value="claude" {% if config.ai_providers.primary_provider == 'claude' %}selected{% endif %}>Claude (Anthropic)</option>
-                <option value="qianwen" {% if config.ai_providers.primary_provider == 'qianwen' %}selected{% endif %}>通义千问（阿里云）</option>
-                <option value="wenxin" {% if config.ai_providers.primary_provider == 'wenxin' %}selected{% endif %}>文心一言（百度）</option>
-                <option value="zhipu" {% if config.ai_providers.primary_provider == 'zhipu' %}selected{% endif %}>智谱GLM</option>
-                <option value="deepseek" {% if config.ai_providers.primary_provider == 'deepseek' %}selected{% endif %}>DeepSeek</option>
-                <option value="kimi" {% if config.ai_providers.primary_provider == 'kimi' %}selected{% endif %}>Kimi（月之暗面）</option>
-                <option value="grok" {% if config.ai_providers.primary_provider == 'grok' %}selected{% endif %}>Grok (xAI)</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用备用切换</span>
-                <label class="switch">
-                    <input type="checkbox" name="fallback_enabled" {% if config.ai_providers.fallback_enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-            <small style="color: #868e96;">主AI不可用时自动切换到其他已启用的AI</small>
-        </div>
-        
-        <hr style="margin: 2rem 0;">
-        
-        <h4 style="margin-bottom: 1rem; color: #667eea;">🔑 API Key 配置</h4>
-        
-        <div class="form-group">
-            <label>Gemini API Key</label>
-            <input type="text" name="gemini_api_key" value="{{ config.ai_providers.gemini.api_key if config.ai_providers.gemini.api_key != 'YOUR_GEMINI_API_KEY' else '' }}" placeholder="从 https://aistudio.google.com/app/apikey 获取">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="gemini_enabled" {% if config.ai_providers.gemini.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用Gemini</small>
-        </div>
-        
-        <div class="form-group">
-            <label>OpenAI API Key</label>
-            <input type="text" name="openai_api_key" value="{{ config.ai_providers.openai.api_key if config.ai_providers.openai.api_key and not config.ai_providers.openai.api_key.startswith('YOUR_') else '' }}" placeholder="sk-proj-...">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="openai_enabled" {% if config.ai_providers.openai.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用OpenAI</small>
-        </div>
-        
-        <div class="form-group">
-            <label>Claude API Key</label>
-            <input type="text" name="claude_api_key" value="{{ config.ai_providers.claude.api_key if config.ai_providers.claude.api_key and not config.ai_providers.claude.api_key.startswith('YOUR_') else '' }}" placeholder="sk-ant-...">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="claude_enabled" {% if config.ai_providers.claude.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用Claude</small>
-        </div>
-        
-        <div class="form-group">
-            <label>通义千问 API Key</label>
-            <input type="text" name="qianwen_api_key" value="{{ config.ai_providers.qianwen.api_key if config.ai_providers.qianwen.api_key and not config.ai_providers.qianwen.api_key.startswith('YOUR_') else '' }}" placeholder="sk-...">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="qianwen_enabled" {% if config.ai_providers.qianwen.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用通义千问</small>
-        </div>
-        
-        <div class="form-group">
-            <label>Grok API Key</label>
-            <input type="text" name="grok_api_key" value="{{ config.ai_providers.grok.api_key if config.ai_providers.grok.api_key and not config.ai_providers.grok.api_key.startswith('YOUR_') else '' }}" placeholder="xai-...">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="grok_enabled" {% if config.ai_providers.grok.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用Grok (xAI)</small>
-        </div>
-        
-        <div class="form-group">
-            <label>文心一言 API Key</label>
-            <input type="text" name="wenxin_api_key" value="{{ config.ai_providers.wenxin.api_key if config.ai_providers.wenxin.api_key and not config.ai_providers.wenxin.api_key.startswith('YOUR_') else '' }}" placeholder="百度文心API Key">
-            <input type="text" name="wenxin_secret_key" value="{{ config.ai_providers.wenxin.secret_key if config.ai_providers.wenxin.secret_key and not config.ai_providers.wenxin.secret_key.startswith('YOUR_') else '' }}" placeholder="Secret Key" style="margin-top: 0.5rem;">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="wenxin_enabled" {% if config.ai_providers.wenxin.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用文心一言</small>
-        </div>
-        
-        <div class="form-group">
-            <label>智谱GLM API Key</label>
-            <input type="text" name="zhipu_api_key" value="{{ config.ai_providers.zhipu.api_key if config.ai_providers.zhipu.api_key and not config.ai_providers.zhipu.api_key.startswith('YOUR_') else '' }}" placeholder="YOUR_API_KEY.xxx">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="zhipu_enabled" {% if config.ai_providers.zhipu.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用智谱GLM</small>
-        </div>
-        
-        <div class="form-group">
-            <label>DeepSeek API Key</label>
-            <input type="text" name="deepseek_api_key" value="{{ config.ai_providers.deepseek.api_key if config.ai_providers.deepseek.api_key and not config.ai_providers.deepseek.api_key.startswith('YOUR_') else '' }}" placeholder="sk-...">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="deepseek_enabled" {% if config.ai_providers.deepseek.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用DeepSeek</small>
-        </div>
-        
-        <div class="form-group">
-            <label>Kimi API Key</label>
-            <input type="text" name="kimi_api_key" value="{{ config.ai_providers.kimi.api_key if config.ai_providers.kimi.api_key and not config.ai_providers.kimi.api_key.startswith('YOUR_') else '' }}" placeholder="sk-...">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="kimi_enabled" {% if config.ai_providers.kimi.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用Kimi（月之暗面）</small>
-        </div>
-        
-        <div class="form-group">
-            <label>讯飞星火 配置</label>
-            <input type="text" name="xunfei_app_id" value="{{ config.ai_providers.xunfei.app_id if config.ai_providers.xunfei.app_id and not config.ai_providers.xunfei.app_id.startswith('YOUR_') else '' }}" placeholder="App ID" style="margin-bottom: 0.5rem;">
-            <input type="text" name="xunfei_api_key" value="{{ config.ai_providers.xunfei.api_key if config.ai_providers.xunfei.api_key and not config.ai_providers.xunfei.api_key.startswith('YOUR_') else '' }}" placeholder="API Key" style="margin-bottom: 0.5rem;">
-            <input type="text" name="xunfei_api_secret" value="{{ config.ai_providers.xunfei.api_secret if config.ai_providers.xunfei.api_secret and not config.ai_providers.xunfei.api_secret.startswith('YOUR_') else '' }}" placeholder="API Secret">
-            <label class="switch" style="margin-top: 0.5rem;">
-                <input type="checkbox" name="xunfei_enabled" {% if config.ai_providers.xunfei.enabled %}checked{% endif %}>
-                <span class="slider"></span>
-            </label>
-            <small style="margin-left: 0.5rem;">启用讯飞星火（需WebSocket支持）</small>
-        </div>
-        
-        <p style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 5px; color: #495057; font-size: 0.9rem;">
-            💡 <b>提示</b>: 各AI模型的API Key获取方法请查看 <a href="https://github.com/GSDPGIT/BTAUTOCHECK/blob/main/AI_SETUP_GUIDE.md" target="_blank" style="color: #667eea;">AI配置指南</a>
-        </p>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">Server酱通知</div>
-        
-        <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 1rem;">
-                <span>启用Server酱</span>
-                <label class="switch">
-                    <input type="checkbox" name="serverchan_enabled" {% if config.notifications.serverchan.enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </label>
-        </div>
-        
-        <div class="form-group">
-            <label>SendKey</label>
-            <input type="text" name="serverchan_sendkey" value="{{ config.notifications.serverchan.sendkey }}" placeholder="SCT...">
-            <small style="color: #868e96;">从 https://sct.ftqq.com/ 获取</small>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <div>
+                    <label class="form-label mb-0">启用自动上传</label>
+                    <div class="form-text">检测完成后自动上传报告到GitHub仓库</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="auto_upload"
+                           id="auto_upload" {% if config.auto_upload %}checked{% endif %}>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="github_username" class="form-label">GitHub用户名</label>
+                    <input type="text" class="form-control" id="github_username" name="github_username"
+                           value="{{ config.github_username }}" placeholder="your_github_username">
+                    <div class="form-text">你的GitHub用户名</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="github_repo" class="form-label">GitHub仓库名</label>
+                    <input type="text" class="form-control" id="github_repo" name="github_repo"
+                           value="{{ config.github_repo }}" placeholder="bt-panel-files">
+                    <div class="form-text">存放报告的仓库名称</div>
+                </div>
+
+                <div class="col-12">
+                    <label for="github_token" class="form-label">GitHub Token</label>
+                    <input type="password" class="form-control" id="github_token" name="github_token"
+                           value="{{ config.github_token }}" placeholder="ghp_xxxxxxxxxxxx">
+                    <div class="form-text">
+                        Personal Access Token，需要repo权限
+                        <a href="https://github.com/settings/tokens" target="_blank" class="text-primary">获取Token →</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
-    <div style="display: flex; gap: 1rem;">
-        <button type="submit" class="btn btn-primary">💾 保存配置</button>
-        <button type="button" onclick="testNotification()" class="btn btn-success">📨 测试通知</button>
-        <button type="button" onclick="testAI(event)" class="btn btn-secondary">🤖 测试AI</button>
+    <!-- 备份配置 -->
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-success bg-opacity-10 text-success border-success border-start border-5">
+            <i class="bi bi-archive"></i> 备份配置
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <label class="form-label mb-0">启用备份功能</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="backup_enabled"
+                                   id="backup_enabled" {% if config.backup_enabled %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <label class="form-label mb-0">升级前自动备份</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="backup_before_upgrade"
+                                   id="backup_before_upgrade" {% if config.backup_before_upgrade %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <label class="form-label mb-0">失败时自动回滚</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="auto_rollback_on_failure"
+                                   id="auto_rollback_on_failure" {% if config.auto_rollback_on_failure %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="keep_backups" class="form-label">保留备份数量</label>
+                    <input type="number" class="form-control" id="keep_backups" name="keep_backups"
+                           value="{{ config.keep_backups }}" min="1" max="20">
+                    <div class="form-text">保留最近N个备份，旧备份自动清理</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI深度分析配置 -->
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-warning bg-opacity-10 text-warning border-warning border-start border-5">
+            <i class="bi bi-robot"></i> AI深度分析配置
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <div>
+                    <label class="form-label mb-0">启用AI分析</label>
+                    <div class="form-text">启用后将使用AI进行深度代码分析（更准确，但耗时稍长）</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="ai_enabled"
+                           id="ai_enabled" {% if config.ai_providers.enabled %}checked{% endif %}>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label for="primary_provider" class="form-label">主要AI模型</label>
+                    <select name="primary_provider" id="primary_provider" class="form-select">
+                        <option value="gemini" {% if config.ai_providers.primary_provider == 'gemini' %}selected{% endif %}>Google Gemini（推荐-免费）</option>
+                        <option value="openai" {% if config.ai_providers.primary_provider == 'openai' %}selected{% endif %}>OpenAI GPT-4</option>
+                        <option value="claude" {% if config.ai_providers.primary_provider == 'claude' %}selected{% endif %}>Claude (Anthropic)</option>
+                        <option value="qianwen" {% if config.ai_providers.primary_provider == 'qianwen' %}selected{% endif %}>通义千问（阿里云）</option>
+                        <option value="wenxin" {% if config.ai_providers.primary_provider == 'wenxin' %}selected{% endif %}>文心一言（百度）</option>
+                        <option value="zhipu" {% if config.ai_providers.primary_provider == 'zhipu' %}selected{% endif %}>智谱GLM</option>
+                        <option value="deepseek" {% if config.ai_providers.primary_provider == 'deepseek' %}selected{% endif %}>DeepSeek</option>
+                        <option value="kimi" {% if config.ai_providers.primary_provider == 'kimi' %}selected{% endif %}>Kimi（月之暗面）</option>
+                        <option value="grok" {% if config.ai_providers.primary_provider == 'grok' %}selected{% endif %}>Grok (xAI)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center h-100">
+                        <div>
+                            <label class="form-label mb-0">启用备用切换</label>
+                            <div class="form-text">主AI不可用时自动切换</div>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="fallback_enabled"
+                                   id="fallback_enabled" {% if config.ai_providers.fallback_enabled %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="section-title"><i class="bi bi-key"></i> API Key 配置</h5>
+        
+            <div class="row g-3">
+                <!-- Gemini -->
+                <div class="col-md-6">
+                    <label for="gemini_api_key" class="form-label">Gemini API Key</label>
+                    <input type="text" class="form-control mb-2" id="gemini_api_key" name="gemini_api_key"
+                           value="{{ config.ai_providers.gemini.api_key if config.ai_providers.gemini.api_key != 'YOUR_GEMINI_API_KEY' else '' }}"
+                           placeholder="从 https://aistudio.google.com/app/apikey 获取">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="gemini_enabled" id="gemini_enabled"
+                               {% if config.ai_providers.gemini.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="gemini_enabled">启用Gemini</label>
+                    </div>
+                </div>
+
+                <!-- OpenAI -->
+                <div class="col-md-6">
+                    <label for="openai_api_key" class="form-label">OpenAI API Key</label>
+                    <input type="text" class="form-control mb-2" id="openai_api_key" name="openai_api_key"
+                           value="{{ config.ai_providers.openai.api_key if config.ai_providers.openai.api_key and not config.ai_providers.openai.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="sk-proj-...">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="openai_enabled" id="openai_enabled"
+                               {% if config.ai_providers.openai.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="openai_enabled">启用OpenAI</label>
+                    </div>
+                </div>
+
+                <!-- Claude -->
+                <div class="col-md-6">
+                    <label for="claude_api_key" class="form-label">Claude API Key</label>
+                    <input type="text" class="form-control mb-2" id="claude_api_key" name="claude_api_key"
+                           value="{{ config.ai_providers.claude.api_key if config.ai_providers.claude.api_key and not config.ai_providers.claude.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="sk-ant-...">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="claude_enabled" id="claude_enabled"
+                               {% if config.ai_providers.claude.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="claude_enabled">启用Claude</label>
+                    </div>
+                </div>
+
+                <!-- 通义千问 -->
+                <div class="col-md-6">
+                    <label for="qianwen_api_key" class="form-label">通义千问 API Key</label>
+                    <input type="text" class="form-control mb-2" id="qianwen_api_key" name="qianwen_api_key"
+                           value="{{ config.ai_providers.qianwen.api_key if config.ai_providers.qianwen.api_key and not config.ai_providers.qianwen.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="sk-...">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="qianwen_enabled" id="qianwen_enabled"
+                               {% if config.ai_providers.qianwen.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="qianwen_enabled">启用通义千问</label>
+                    </div>
+                </div>
+
+                <!-- Grok -->
+                <div class="col-md-6">
+                    <label for="grok_api_key" class="form-label">Grok API Key</label>
+                    <input type="text" class="form-control mb-2" id="grok_api_key" name="grok_api_key"
+                           value="{{ config.ai_providers.grok.api_key if config.ai_providers.grok.api_key and not config.ai_providers.grok.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="xai-...">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="grok_enabled" id="grok_enabled"
+                               {% if config.ai_providers.grok.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="grok_enabled">启用Grok (xAI)</label>
+                    </div>
+                </div>
+
+                <!-- 文心一言 -->
+                <div class="col-md-6">
+                    <label for="wenxin_api_key" class="form-label">文心一言配置</label>
+                    <input type="text" class="form-control mb-2" id="wenxin_api_key" name="wenxin_api_key"
+                           value="{{ config.ai_providers.wenxin.api_key if config.ai_providers.wenxin.api_key and not config.ai_providers.wenxin.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="百度文心API Key">
+                    <input type="text" class="form-control mb-2" name="wenxin_secret_key"
+                           value="{{ config.ai_providers.wenxin.secret_key if config.ai_providers.wenxin.secret_key and not config.ai_providers.wenxin.secret_key.startswith('YOUR_') else '' }}"
+                           placeholder="Secret Key">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="wenxin_enabled" id="wenxin_enabled"
+                               {% if config.ai_providers.wenxin.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="wenxin_enabled">启用文心一言</label>
+                    </div>
+                </div>
+
+                <!-- 智谱GLM -->
+                <div class="col-md-6">
+                    <label for="zhipu_api_key" class="form-label">智谱GLM API Key</label>
+                    <input type="text" class="form-control mb-2" id="zhipu_api_key" name="zhipu_api_key"
+                           value="{{ config.ai_providers.zhipu.api_key if config.ai_providers.zhipu.api_key and not config.ai_providers.zhipu.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="YOUR_API_KEY.xxx">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="zhipu_enabled" id="zhipu_enabled"
+                               {% if config.ai_providers.zhipu.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="zhipu_enabled">启用智谱GLM</label>
+                    </div>
+                </div>
+
+                <!-- DeepSeek -->
+                <div class="col-md-6">
+                    <label for="deepseek_api_key" class="form-label">DeepSeek API Key</label>
+                    <input type="text" class="form-control mb-2" id="deepseek_api_key" name="deepseek_api_key"
+                           value="{{ config.ai_providers.deepseek.api_key if config.ai_providers.deepseek.api_key and not config.ai_providers.deepseek.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="sk-...">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="deepseek_enabled" id="deepseek_enabled"
+                               {% if config.ai_providers.deepseek.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="deepseek_enabled">启用DeepSeek</label>
+                    </div>
+                </div>
+
+                <!-- Kimi -->
+                <div class="col-md-6">
+                    <label for="kimi_api_key" class="form-label">Kimi API Key</label>
+                    <input type="text" class="form-control mb-2" id="kimi_api_key" name="kimi_api_key"
+                           value="{{ config.ai_providers.kimi.api_key if config.ai_providers.kimi.api_key and not config.ai_providers.kimi.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="sk-...">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="kimi_enabled" id="kimi_enabled"
+                               {% if config.ai_providers.kimi.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="kimi_enabled">启用Kimi（月之暗面）</label>
+                    </div>
+                </div>
+
+                <!-- 讯飞星火 -->
+                <div class="col-md-6">
+                    <label for="xunfei_app_id" class="form-label">讯飞星火配置</label>
+                    <input type="text" class="form-control mb-2" id="xunfei_app_id" name="xunfei_app_id"
+                           value="{{ config.ai_providers.xunfei.app_id if config.ai_providers.xunfei.app_id and not config.ai_providers.xunfei.app_id.startswith('YOUR_') else '' }}"
+                           placeholder="App ID">
+                    <input type="text" class="form-control mb-2" name="xunfei_api_key"
+                           value="{{ config.ai_providers.xunfei.api_key if config.ai_providers.xunfei.api_key and not config.ai_providers.xunfei.api_key.startswith('YOUR_') else '' }}"
+                           placeholder="API Key">
+                    <input type="text" class="form-control mb-2" name="xunfei_api_secret"
+                           value="{{ config.ai_providers.xunfei.api_secret if config.ai_providers.xunfei.api_secret and not config.ai_providers.xunfei.api_secret.startswith('YOUR_') else '' }}"
+                           placeholder="API Secret">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="xunfei_enabled" id="xunfei_enabled"
+                               {% if config.ai_providers.xunfei.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="xunfei_enabled">启用讯飞星火（需WebSocket支持）</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4" role="alert">
+                <i class="bi bi-info-circle-fill"></i> <strong>提示：</strong>
+                各AI模型的API Key获取方法请查看
+                <a href="https://github.com/GSDPGIT/BTAUTOCHECK/blob/main/AI_SETUP_GUIDE.md" target="_blank" class="alert-link">AI配置指南</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Server酱通知 -->
+    <div class="card custom-card mb-4">
+        <div class="card-header bg-secondary bg-opacity-10 text-secondary border-secondary border-start border-5">
+            <i class="bi bi-wechat"></i> Server酱通知
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                <label class="form-label mb-0">启用Server酱</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="serverchan_enabled"
+                           id="serverchan_enabled" {% if config.notifications.serverchan.enabled %}checked{% endif %}>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="serverchan_sendkey" class="form-label">SendKey</label>
+                    <input type="text" class="form-control" id="serverchan_sendkey" name="serverchan_sendkey"
+                           value="{{ config.notifications.serverchan.sendkey }}" placeholder="SCT...">
+                    <div class="form-text">从 <a href="https://sct.ftqq.com/" target="_blank" class="text-primary">https://sct.ftqq.com/</a> 获取</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-save"></i> 保存配置
+        </button>
+        <button type="button" onclick="testNotification()" class="btn btn-success btn-lg">
+            <i class="bi bi-envelope-check"></i> 测试通知
+        </button>
+        <button type="button" onclick="testAI(event)" class="btn btn-info btn-lg">
+            <i class="bi bi-robot"></i> 测试AI
+        </button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> 返回仪表板
+        </a>
     </div>
 </form>
 
